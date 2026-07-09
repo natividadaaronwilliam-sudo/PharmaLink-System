@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory - Pharmacy System</title>
+  <link rel="stylesheet" href="assets/theme.css">
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      width: 450px;
+      max-width: 95%;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .modal-header h2 {
+      font-size: 20px;
+      color: #1e3a8a;
+    }
+    .close {
+      cursor: pointer;
+      font-size: 22px;
+      color: #555;
+    }
+    .modal form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .modal input, .modal select {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      width: 100%;
+    }
+    .modal button {
+      align-self: flex-end;
+      background: #16a34a;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+    }
+    .modal button:hover {
+      background: #15803d;
+    }
+    /* Style for labels in the modal */
+    .modal label {
+        font-weight: 600;
+        margin-top: 5px;
+        color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>💊 Pharmacy</h2>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="inventory.html" class="active">Inventory</a>
+    <a href="upload_prescription.html">Upload Prescription</a>
+    <a href="index.html" class="logout">🚪 Logout</a>
+  </div>
+
+  <div class="main-content">
+    <header>
+      <h1>Inventory Management</h1>
+    </header>
+
+    <div class="cards">
+      <div class="card inv-summary-card" data-filter="all" title="Show all non-expired lots" style="cursor:pointer;">
+        <h3>Total Items</h3>
+        <div class="value" id="total-items">0</div>
+      </div>
+      <div class="card inv-summary-card" data-filter="low" title="Filter low-stock lots" style="cursor:pointer;">
+        <h3>Low Stock</h3>
+        <div class="value" id="low-stock">0</div>
+      </div>
+      <div class="card inv-summary-card" data-filter="out" title="Filter out-of-stock lots" style="cursor:pointer;">
+        <h3>Out of Stock</h3>
+        <div class="value" id="out-stock">0</div>
+      </div>
+      <div class="card inv-summary-card" data-filter="expiring" title="Filter lots expiring within 90 days" style="cursor:pointer;">
+        <h3>Expiring Soon</h3>
+        <div class="value" id="expiring-soon">0</div>
+      </div>
+    </div>
+
+    <div style="width: 100%; max-width: 1200px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+  <div style="display: flex; gap: 10px;">
+    <button class="add-btn" id="addDrugMasterBtn" style="background: #2563eb;"><i class="fa fa-flask"></i> Define New Drug</button>
+  </div>
+
+  <div>
+    <label for="categoryFilter">Filter by Category:</label>
+        <select id="categoryFilter" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc;">
+          <option value="all">All</option>
+          <option value="antibiotic">Antibiotic</option>
+          <option value="analgesic">Analgesic</option>
+          <option value="antipyretic">Antipyretic</option>
+          <option value="antihistamine">Antihistamine</option>
+          <option value="antacid">Antacid</option>
+          <option value="antihypertensive">Antihypertensive</option>
+          <option value="antidiabetic">Antidiabetic</option>
+          <option value="vitamin">Vitamin / Supplement</option>
+        </select>
+  </div>
+  
+
+    <h2 style="margin-top: 40px; color: #1e3a8a;">💊 Standard Drug Definitions (Master List)</h2>
+    <div style="width: 100%; max-width: 1200px; overflow-x: auto;">
+      <table id="drugMasterTable" style="width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; margin-bottom: 50px;">
+        <thead style="background-color: #16a34a; color: white;">
+          <tr>
+            <th style="padding: 12px;">ID</th>
+            <th>Generic Name</th>
+            <th>Brand Name</th>
+            <th>Dosage</th>
+            <th>Form</th>
+            <th>Category</th>
+            <th>Min Stock</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="drugMasterBody">
+          </tbody>
+      </table>
+    </div>
+
+        <div style="width: 100%; max-width: 1200px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+  <div style="display: flex; gap: 10px;">
+    <button class="add-btn" id="addItemBtn"><i class="fa fa-boxes"></i> Add Stock Lot</button> 
+  </div>
+  </div>
+
+    <div style="width: 100%; max-width: 1200px; overflow-x: auto;">
+      <table id="inventoryTable" style="width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden;">
+        <thead style="background-color: #1e3a8a; color: white;">
+          <tr>
+            <th style="padding: 12px;">Generic Name</th>
+            <th>Brand Name</th>
+            <th>Dosage</th>
+            <th>Form</th>
+            <th>Category</th>
+            <th>Lot Number</th>
+            <th>Expiration Date</th> 
+            <th>Current Stock</th>
+            <th>Minimum Stock</th>
+            <th>Price</th>
+            <th>Supplier</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryBody">
+          </tbody>
+      </table>
+    </div>
+
+
+    
+  <div id="addItemModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add New Stock Lot</h2>
+        <span class="close" id="closeModal">&times;</span>
+      </div>
+      <form id="addItemForm">
+        
+        <label for="drug_master_id">Select Standard Drug:</label>
+        <select id="drug_master_id" required>
+            <option value="">Loading Drug List...</option>
+        </select>
+        
+        <label for="lot_number">Lot/Batch Number:</label>
+        <input type="text" id="lot_number" placeholder="Lot Number (e.g., AB1234)" required>
+        
+        <label for="expiration_date">Expiration Date:</label>
+        <input type="date" id="expiration_date" required>
+        
+        <label for="current_stock">Initial Stock Quantity:</label>
+        <input type="number" id="current_stock" placeholder="Current Stock" required>
+        
+        <label for="price">Unit Price:</label>
+        <input type="number" step="0.01" id="price" placeholder="Price" required>
+        
+<label for="supplier">Supplier:</label>
+<select id="supplier" name="supplier">
+    <option value="">Select Supplier</option>
+</select>
+
+        
+        <button type="submit">Save Stock Lot</button>
+      </form>
+    </div>
+    </div>
+
+    <div id="addDrugModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Define New Standard Drug 🧬</h2>
+        <span class="close" id="closeDrugModal">&times;</span>
+      </div>
+      <form id="addDrugForm">
+        <label for="new_generic_name">Generic Name:</label>
+        <input type="text" id="new_generic_name" placeholder="Paracetamol" required>
+        
+        <label for="new_brand_name">Brand Name (Optional):</label>
+        <input type="text" id="new_brand_name" placeholder="Tylenol or leave blank">
+        
+        <label for="new_dosage">Dosage:</label>
+        <input type="text" id="new_dosage" placeholder="500mg" required>
+        
+        <label for="new_form">Form:</label>
+        <input type="text" id="new_form" placeholder="Tablet, Syrup, Capsule" required>
+        
+    <label for="categoryFilter">Filter by Category:</label>
+    <select id="categoryFilter">
+        <option value="all">All</option>
+        <option value="antibiotic">Antibiotic</option>
+        <option value="analgesic">Analgesic</option>
+        <option value="antipyretic">Antipyretic</option>
+        <option value="antihistamine">Antihistamine</option>
+        <option value="antacid">Antacid</option>
+        <option value="antihypertensive">Antihypertensive</option>
+        <option value="antdiabetic">Anti-Diabetic</option>
+        <option value="vitamin">Vitamin / Supplement</option>
+    </select>
+
+        
+        <label for="new_minimum_stock">Minimum Stock Level:</label>
+        <input type="number" id="new_minimum_stock" placeholder="e.g. 50" required>
+        
+        <button type="submit" style="background: #2563eb;">Create Drug Definition</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="editDrugMasterModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Drug Definition: <span id="currentMasterDrugName"></span></h2>
+        <span class="close" id="closeEditDrugMasterModal">&times;</span>
+      </div>
+      <form id="editDrugMasterForm">
+        <input type="hidden" id="edit_master_drug_id">
+
+        <label for="edit_generic_name">Generic Name:</label>
+        <input type="text" id="edit_generic_name" required>
+        
+        <label for="edit_brand_name">Brand Name (Optional):</label>
+        <input type="text" id="edit_brand_name">
+        
+        <label for="edit_dosage">Dosage:</label>
+        <input type="text" id="edit_dosage" required>
+        
+        <label for="edit_form">Form:</label>
+        <input type="text" id="edit_form" required>
+        
+        <label for="edit_category">Category:</label>
+        <select id="edit_category" required>
+          <option value="antibiotic">Antibiotic</option>
+          <option value="analgesic">Analgesic</option>
+          <option value="antipyretic">Antipyretic</option>
+          <option value="antihistamine">Antihistamine</option>
+          <option value="antacid">Antacid</option>
+          <option value="antihypertensive">Antihypertensive</option>
+          <option value="antidiabetic">Antidiabetic</option>
+          <option value="vitamin">Vitamin / Supplement</option>
+        </select>
+        
+        <label for="edit_minimum_stock">Minimum Stock Level:</label>
+        <input type="number" id="edit_minimum_stock" required>
+        
+        <button type="submit" style="background: #f59e0b;">Update Definition</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="editLotModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Stock Lot: <span id="editDrugName"></span></h2>
+        <span class="close" id="closeEditModal">&times;</span>
+      </div>
+      <form id="editLotForm">
+        <input type="hidden" id="edit_lot_inventory_id">
+
+        <label>Standard Drug:</label>
+        <p id="edit_drug_label" style="font-weight: bold; margin-top: 0; margin-bottom: 10px;"></p>
+        
+        <label for="edit_lot_number">Lot/Batch Number:</label>
+        <input type="text" id="edit_lot_number" required>
+        
+        <label for="edit_expiration_date">Expiration Date:</label>
+        <input type="date" id="edit_expiration_date" required>
+        
+        <label for="edit_current_stock">Current Stock Quantity:</label>
+        <input type="number" id="edit_current_stock" required>
+        
+        <label for="edit_price">Unit Price (₱):</label>
+        <input type="number" step="0.01" id="edit_price" required>
+        
+<label for="supplier">Supplier:</label>
+<select id="supplier" name="supplier">
+</select>
+
+
+        </select>
+        
+        <button type="submit" style="background: #f59e0b;">Update Lot</button>
+      </form>
+    </div>
+  </div>
+
+
+  <script src="inventory.js"></script>
+
+<script src="assets/theme.js"></script>
+</body>
+</html>

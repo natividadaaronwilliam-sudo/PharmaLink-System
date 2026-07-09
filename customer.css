@@ -1,0 +1,745 @@
+@import url('assets/theme.css');
+/* customer.css: Ang Kumpletong Code na May Fixed Layout */
+
+/* =======================================
+   1. GLOBAL & BASE LAYOUT
+   ======================================= */
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+/* Base Layout */
+body {
+    min-height:100vh;
+    background:#f5f7fa;
+    /* CRITICAL: Huwag gamitin ang display:flex; dito, dahil sinisira nito ang Sidebar/Main layout */
+    overflow-x: hidden;
+} 
+
+/* --- CRITICAL RULES FOR SPA FUNCTIONALITY (Huwag tanggalin) --- */
+/* Tinitiyak na isang section lang ang active */
+.main .content section {
+    display: none;
+}
+.main .content section.active {
+    display: block;
+}
+/* ---------------------------------------------------------------- */
+
+
+/* =======================================
+   2. SIDEBAR NAVIGATION
+   ======================================= */
+.sidebar{
+    /* CRITICAL: Fixes the sidebar to the left */
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width:250px;
+    height: 100vh; /* CRITICAL: Full height */
+    background:linear-gradient(180deg,#1c2230,#20293a);
+    color:white;
+    display:flex;
+    flex-direction:column;
+    padding-top:20px;
+    padding-bottom: 20px;
+    z-index: 100; /* Tiyakin na nasa taas ng ibang content */
+}
+.sidebar h2{
+    text-align:center;
+    color:#8f9be3;
+    margin-bottom:10px;
+}
+.sidebar .role{
+    background:#3bb273;
+    color:#fff;
+    border-radius:20px;
+    padding:3px 10px;
+    text-align:center;
+    font-size:12px;
+    margin:0 auto 20px auto;
+}
+.nav-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 25px;
+    cursor:pointer;
+    transition:all 0.3s;
+    text-decoration: none; 
+    color: inherit; 
+}
+.nav-item:hover,
+.nav-item.active{
+    background:#2e3649;
+}
+.nav-item i{
+    font-size:20px;
+}
+
+/* =======================================
+   3. MAIN CONTENT LAYOUT
+   ======================================= */
+.main{
+    /* CRITICAL: Pushes the main content past the sidebar width */
+    margin-left: 250px; 
+    flex:1;
+    background:#f5f7fa;
+    display:flex;
+    flex-direction:column;
+    min-height: 100vh; 
+}
+
+.header{
+    background:#fff;
+    padding:15px 30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-bottom:1px solid #ddd;
+}
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:20px;
+}
+
+.notification{
+    position:relative;
+    font-size:20px;
+    color:#555;
+    cursor:pointer;
+}
+
+#notification-dropdown {
+    position: absolute;
+    top: 30px;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    min-width: 250px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    z-index: 9999;
+}
+/* Pages */
+.content{
+    flex:1;
+    padding:30px;
+    overflow-y:auto;
+}
+section{
+    animation:fadeIn 0.4s ease;
+}
+@keyframes fadeIn{
+    from{opacity:0;transform:translateY(10px);}
+    to{opacity:1;transform:translateY(0);}
+}
+
+/* =======================================
+   4. DASHBOARD PAGE
+   ======================================= */
+.dashboard-header{
+    margin-bottom:25px;
+}
+.dashboard-header h2{
+    font-size:1.8rem;
+    color:#333;
+    margin-bottom:5px;
+}
+.dashboard-header .subtitle{
+    color:#666;
+    font-size:0.95rem;
+}
+
+.dashboard-cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:20px;
+    margin-bottom:30px;
+}
+.card{
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 3px 8px rgba(0,0,0,0.1);
+    text-align:center;
+    transition:0.3s;
+}
+.card:hover{
+    transform:translateY(-5px);
+}
+.card i{
+    font-size:25px;
+    color:#574b90;
+    margin-bottom:10px;
+}
+.card h3{
+    margin-bottom:5px;
+    color:#222;
+}
+
+.section-row{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:20px;
+}
+
+/* Quick Actions Card */
+.quick-actions {
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+.quick-actions h3 {
+    margin-bottom:10px;
+    color:#333;
+    text-align:center;
+}
+.quick-actions .btn-container {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
+    gap:10px;
+}
+.quick-actions button {
+    background:#574b90;
+    color:white;
+    border:none;
+    padding:10px;
+    border-radius:6px;
+    cursor:pointer;
+    transition:0.3s;
+    font-size:14px;
+}
+.quick-actions button:hover {
+    background:#6d5dc4;
+}
+
+/* Activity and Tips Cards */
+.activity-card,
+.tips-card {
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+.activity-card h3,
+.tips-card h3 {
+    margin-bottom:15px;
+    color:#333;
+}
+.activity-card table{
+    width:100%;
+    border-collapse:collapse;
+}
+.activity-card th, .activity-card td{
+    padding:10px;
+    text-align:left;
+    border-bottom:1px solid #eee;
+}
+.activity-card th{
+    background:#f1f1f1;
+    color:#333;
+}
+.activity-card tr:hover{
+    background:#f9f9f9;
+}
+.tips-card .tip{
+    display:flex;
+    align-items:center;
+    margin-bottom:12px;
+}
+.tips-card i{
+    font-size:20px;
+    color:#27ae60;
+    margin-right:10px;
+}
+
+
+/* =======================================
+   5. PRODUCTS PAGE & GRID
+   ======================================= */
+
+.products-header {
+    margin-bottom: 20px;
+}
+.products-header h2 {
+    font-size: 1.8rem;
+    color: #574b90; 
+    margin-bottom: 5px;
+}
+.products-header .subtitle {
+    color: #666;
+    font-size: 0.95rem;
+}
+.products-container {
+    display: flex; /* grid + cart side by side */
+    gap: 20px;
+    align-items: flex-start;
+}
+.product-grid-wrapper {
+    flex: 1; /* Para mag-occupy ng available space */
+}
+.product-grid {
+    display: flex; /* Ginamit ang flex dito para sa custom PHP loop spacing */
+    flex-wrap: wrap;
+    gap: 15px; /* Ito ang gap na ginamit sa PHP code */
+}
+.product {
+    background:white;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    padding:15px;
+    /* Ang width ay dapat nasa inline style sa PHP para sa grid calculation */
+}
+.product button.add-btn {
+    background:#007bff; /* Blue for Add button */
+    color:white;
+    border:none;
+    border-radius:4px;
+    padding:8px;
+    cursor:pointer;
+    width: 100%;
+    margin-top: 10px;
+    transition: background 0.2s, opacity 0.2s;
+}
+.product button.add-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #ccc;
+}
+.product button.add-btn:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+
+/* Stock and Expiration Alerts */
+.low-stock {
+    background-color: #fff3cd; /* light yellow */
+}
+.expiring {
+    background-color: #ffe0b2; /* light orange */
+}
+.expired {
+    background-color: #f8d7da; /* light red */
+    color: #b71c1c;
+}
+
+/* =======================================
+   6. SHOPPING CART PANEL (#cart-panel)
+   ======================================= */
+
+#cart-panel {
+    position: sticky; /* Keep it sticky */
+    top: 20px;
+    flex: 0 0 400px; /* Fixed width */
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    align-self: flex-start;
+
+    background: #ffffff !important;
+    border: 1px solid #d0d7de !important;
+    border-radius: 10px !important;
+    padding: 20px !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important;
+    display: flex; 
+    flex-direction: column;
+}
+
+/* Cart Header */
+.cart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #eee; /* Added separator */
+    padding-bottom: 10px;
+}
+.cart-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #574b90;
+}
+
+/* Clear Cart button */
+#clear-cart-btn {
+    background: none;
+    border: 1px solid #ff4b5c; /* Red border */
+    color: #ff4b5c;
+    /* Inayos ang padding para sa isang square icon button */
+    padding: 6px 8px; 
+    border-radius: 6px;
+    cursor: pointer;
+    /* Tumaas ang font size para sa icon */
+    font-size: 1.1rem; 
+    transition: background 0.2s, color 0.2s;
+    line-height: 1; /* Tiyakin na nakasentro ang icon */
+    height: 35px;
+    width: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#clear-cart-btn:hover {
+    background: #ff4b5c;
+    color: white;
+}
+
+/* Customer Info */
+#cart-panel > p {
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+/* Cart Table */
+.cart-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px; /* Space between rows */
+    margin: 10px 0;
+}
+.cart-table th {
+    font-size: 0.85rem;
+    color: #666;
+    padding: 0 8px 5px 8px;
+    border-bottom: 1px solid #eee;
+}
+/* Row Styling */
+.cart-table tbody tr {
+    background: #f8fafc; 
+    border-radius: 6px;
+    box-shadow: 0px 1px 4px rgba(0,0,0,0.05);
+}
+.cart-table td {
+    padding: 10px 8px !important;
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+/* --- QTY CONTROLS --- */
+.qty-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.qty-input {
+    width: 45px;
+    text-align: center;
+    padding: 4px 0;
+    border: 1px solid #d2d6dc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+.qty-control-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.qty-minus {
+    /* Tiyakin na Pula ang background */
+    background: #dc3545 !important; /* Red */
+}
+
+.qty-plus {
+    /* Tiyakin na Asul ang background */
+    background: #0d6efd !important; /* Blue */
+}
+
+/* Optional: Gawing mas madilim ang kulay pag na-hover */
+.qty-minus:hover {
+    background: #c82333 !important; 
+}
+.qty-plus:hover {
+    background: #0056b3 !important;
+}
+
+/* --- REMOVE BUTTON --- */
+.cart-remove-btn {
+    background: none;
+    border: none;
+    color: #e63946; 
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+/* Summary & Checkout */
+.summary {
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+    margin-top: auto;
+}
+.summary p {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+    font-size: 1rem;
+}
+.summary p:last-of-type {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #28a745; 
+    border-top: 1px dashed #ccc;
+    padding-top: 5px;
+}
+#checkout-btn {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px;
+    font-size: 1.1rem;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#checkout-btn:disabled {
+    background: #90ee90;
+    opacity: 0.8;
+    cursor: default;
+}
+
+
+
+
+/* =======================================
+   7. PRESCRIPTION PAGE
+   ======================================= */
+.prescription-header {
+    margin-bottom: 20px;
+}
+.prescription-header h2 {
+    color: #574b90;
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+}
+.prescription-header .subtitle {
+    color: #666;
+    font-size: 0.95rem;
+}
+.upload-box {
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    border: 2px dashed #574b90;
+    text-align: center;
+    margin-bottom: 30px;
+    transition: 0.3s;
+}
+.upload-box:hover {
+    background: #f9f9f9;
+    border-color: #6d5dc4;
+}
+.upload-box input {
+    display: none; /* Hide default input */
+}
+.upload-btn {
+    margin-top: 10px;
+    background: #27ae60;
+    color: #fff;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.upload-btn:hover {
+    background: #2ecc71;
+}
+.pres-history {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.pres-history h3 {
+    margin-bottom: 15px;
+    color: #333;
+}
+.pres-history table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.pres-history th, .pres-history td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+.pres-history th {
+    background: #f1f1f1;
+}
+.pres-history tr:hover {
+    background: #f9f9f9;
+}
+.approved {
+    color: #27ae60;
+    font-weight: bold;
+}
+.pending {
+    color: #f39c12;
+    font-weight: bold;
+}
+.completed {
+    color: #27ae60;
+    font-weight: bold;
+}
+
+.cancelled {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.unknown {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* =======================================
+   8. ORDERS PAGE
+   ======================================= */
+.orders-header {
+    margin-bottom: 20px;
+}
+.orders-header h2 {
+    color: #574b90;
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+}
+.orders-header .subtitle {
+    color: #666;
+    font-size: 0.95rem;
+}
+.orders-table {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.orders-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.orders-table th, .orders-table td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+}
+.orders-table th {
+    background: #f1f1f1;
+}
+.orders-table tr:hover {
+    background: #f9f9f9;
+}
+.completed {
+    color: #27ae60;
+    font-weight: bold;
+}
+.in-transit {
+    color: #f39c12;
+    font-weight: bold;
+}
+.processing {
+    color: #574b90;
+    font-weight: bold;
+}
+
+.ready-for-pickup {
+    color: #c47e5d;
+    font-weight: bold;
+}
+
+
+/* =======================================
+   9. PROFILE PAGE
+   ======================================= */
+.profile-container {
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Inayos ito para nasa gitna vertically */
+    padding: 40px 0;
+    min-height: 70vh; /* Tiyakin na may sapat na taas */
+}
+.profile-card {
+    background: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    width: 350px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+.profile-card img {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+.profile-card h3 {
+    color: #574b90;
+    margin-bottom: 5px;
+}
+.profile-card .subtitle {
+    font-size: 0.95rem;
+    color: #666;
+    margin-bottom: 15px;
+}
+.profile-card input {
+    width: 100%;
+    margin: 8px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+.update-btn {
+    background: #27ae60;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+.update-btn:hover {
+    background: #2ecc71;
+}
+
+.quick-action-btn {
+    display: block; /* Para mag occupy ng buong lapad */
+    text-decoration: none; /* Tanggalin ang underline */
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    background-color: #0d9488; /* Green/Teal color */
+    color: white;
+    transition: background-color 0.3s;
+}
+
+.quick-action-btn:hover {
+    background-color: #047871;
+}
