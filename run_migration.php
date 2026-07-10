@@ -22,6 +22,16 @@ if (!columnExists($conn, 'drugs_master', 'stock_status')) {
     $messages[] = 'Added drugs_master.stock_status';
 }
 
+if (!columnExists($conn, 'prescriptions', 'availability_summary')) {
+    $conn->query("ALTER TABLE prescriptions ADD COLUMN availability_summary TEXT DEFAULT NULL AFTER extracted_text");
+    $messages[] = 'Added prescriptions.availability_summary';
+}
+
+if (!columnExists($conn, 'prescriptions', 'ocr_status')) {
+    $conn->query("ALTER TABLE prescriptions ADD COLUMN ocr_status VARCHAR(20) NOT NULL DEFAULT 'pending' AFTER availability_summary");
+    $messages[] = 'Added prescriptions.ocr_status';
+}
+
 require_once 'includes/stock_status.php';
 syncAllStockStatus($conn);
 $messages[] = 'Synced stock_status for all active drugs';

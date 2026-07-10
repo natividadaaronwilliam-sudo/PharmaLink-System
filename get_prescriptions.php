@@ -15,13 +15,14 @@ if (!$user_id) {
     exit;
 }
 
-$stmt = $conn->prepare("SELECT id, filename, extracted_text, created_at FROM prescriptions WHERE user_id = ? ORDER BY created_at DESC");
+$stmt = $conn->prepare("SELECT id, filename, extracted_text, availability_summary, ocr_status, created_at FROM prescriptions WHERE user_id = ? ORDER BY created_at DESC");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 $rows = [];
 while ($row = $result->fetch_assoc()) {
+    $row['availability_summary'] = $row['availability_summary'] ? json_decode($row['availability_summary'], true) : [];
     $rows[] = $row;
 }
 

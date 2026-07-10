@@ -38,7 +38,9 @@ if ($freq_result && $freq_result->num_rows > 0) {
     ============================================================ */
 $spend_query = "
     SELECT 
+        c.customer_id,
         CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+        c.loyalty_points,
         SUM(co.total_amount) AS total_spent
     FROM customers c
     LEFT JOIN customer_orders co ON c.customer_id = co.customer_id
@@ -50,11 +52,17 @@ $spend_result = $conn->query($spend_query);
 
 $spend_labels = [];
 $spend_data = [];
+$spend_customers = []; // parallel array: customer_id, name, loyalty_points (same order as spend_data)
 
 if ($spend_result && $spend_result->num_rows > 0) {
     while ($row = $spend_result->fetch_assoc()) {
         $spend_labels[] = $row['customer_name'];
         $spend_data[] = (float)$row['total_spent'];
+        $spend_customers[] = [
+            'customer_id' => (int)$row['customer_id'],
+            'name' => $row['customer_name'],
+            'loyalty_points' => (float)($row['loyalty_points'] ?? 0),
+        ];
     }
 }
 
@@ -109,6 +117,7 @@ $segment_variants = [];
 foreach ($segment_label_sets as $n => $labels) {
     $counts = array_fill(0, $n, 0);
     $sums = array_fill(0, $n, 0.0);
+    $members = array_fill(0, $n, []);
     if ($seg_total_customers > 0) {
         // $spend_data is already ORDER BY total_spent DESC, so this splits
         // customers into N real quantile buckets by actual spend.
@@ -117,11 +126,23 @@ foreach ($segment_label_sets as $n => $labels) {
             if ($bucket >= $n) $bucket = $n - 1;
             $counts[$bucket]++;
             $sums[$bucket] += (float)$amt;
+
+            // Track the specific buyers clustered into this segment so the
+            // "View" button can list them and let a cashier add loyalty points.
+            $cust = $spend_customers[$idx] ?? null;
+            if ($cust) {
+                $members[$bucket][] = [
+                    'customer_id' => $cust['customer_id'],
+                    'name' => $cust['name'],
+                    'total_spent' => round((float)$amt, 2),
+                    'loyalty_points' => $cust['loyalty_points'],
+                ];
+            }
         }
     }
     $avgs = [];
     foreach ($counts as $i => $c) { $avgs[$i] = $c > 0 ? round($sums[$i] / $c, 2) : 0; }
-    $segment_variants[$n] = ['labels' => $labels, 'counts' => $counts, 'avgSpend' => $avgs];
+    $segment_variants[$n] = ['labels' => $labels, 'counts' => $counts, 'avgSpend' => $avgs, 'members' => $members];
 }
 
 /* ============================================================
@@ -137,7 +158,8 @@ if ($cashier_user_id && isset($conn)) {
     // Assuming: users table has a role_id column that links to role.role_id
     $sql_staff = "
         SELECT 
-            si.first_name, si.middle_name, si.last_name, si.email, si.phone_number, si.address, si.profile_image 
+            si.first_name, si.middle_name, si.last_name, si.email, si.phone_number, si.address, si.profile_image,
+            u.username
         FROM staff_info si
         JOIN users u ON si.user_id = u.user_id  /* Link staff_info to users table */
         JOIN role r ON u.role_id = r.role_id    /* Link users table to role table */
@@ -158,6 +180,10 @@ if ($cashier_user_id && isset($conn)) {
         $stmt->close();
     } 
 }
+// Whatever was actually used as the account's login (username) is what should
+// reflect as the account email in the profile, so it always matches the real
+// logged-in staff instead of a separate, possibly-blank staff_info.email value.
+$staff_display_email = !empty($staff['email']) ? $staff['email'] : ($staff['username'] ?? '');
 // HINDI na kailangan i-close ang $conn dito, gamitin lang ito sa dulo ng page.
 ?>
 
@@ -499,12 +525,39 @@ style="padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;"> 
               <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Segment</th>
               <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Customers</th>
               <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Avg. Spend</th>
+              <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Action</th>
             </tr>
           </thead>
           <tbody id="segmentTableBody"></tbody>
         </table>
       </div>
     </div>
+  </div>
+
+  <!-- Segment Members panel — shown after clicking "View" on a segment row.
+       Lists the specific buyers clustered into that segment, and lets the
+       cashier manually add loyalty points to any of them. -->
+  <div id="segmentMembersPanel" class="chart-card" style="display:none; background:#fff; border-radius:14px; box-shadow:0 4px 16px rgba(30,41,59,0.06); border:1px solid #eef0f4; padding:18px 22px; margin-bottom:16px;">
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px;">
+      <h3 style="color:#1e293b; margin:0; font-size:16px; font-weight:700;">
+        Buyers in <span id="segmentMembersLabel">—</span>
+      </h3>
+      <button id="segmentMembersCloseBtn" type="button" style="background:#f1f5f9; border:none; color:#475569; font-weight:700; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:13px;">Close</button>
+    </div>
+    <div class="table-wrap" style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:14px;">
+        <thead>
+          <tr style="text-align:left;">
+            <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Customer</th>
+            <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Total Spent</th>
+            <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Loyalty Points</th>
+            <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Add Points</th>
+          </tr>
+        </thead>
+        <tbody id="segmentMembersBody"></tbody>
+      </table>
+    </div>
+    <p id="segmentMembersMessage" style="text-align:center; font-weight:600; margin-top:10px;"></p>
   </div>
 
   <!-- Real data charts -->
@@ -597,7 +650,7 @@ style="padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;"> 
 
       <tr style="background:#f9fafb;">
         <td><strong>Email:</strong></td>
-        <td><input type="email" id="email" class="p-input" value="<?= htmlspecialchars($staff['email'] ?? '') ?>" disabled></td>
+        <td><input type="email" id="email" class="p-input" value="<?= htmlspecialchars($staff_display_email) ?>" disabled></td>
       </tr>
 
       <tr>
@@ -657,7 +710,8 @@ style="padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;"> 
     <p id="message" style="text-align:center; margin-top:10px;"></p>
 
   </div>
-</section>
+</div>
+<!-- /#profile-page -->
 
 
 <!--- REVIEW ORDER MODAL -->
@@ -1681,7 +1735,12 @@ confirmSale.addEventListener("click", () => {
     }
 
     // 1. PRE-OPEN THE RECEIPT WINDOW HERE (CRITICAL FOR POP-UP BLOCKERS)
-    const printWindow = window.open('', '_blank', 'width=300,height=500');
+    // Center the receipt popup window on the screen instead of letting the
+    // browser place it wherever (usually top-left).
+    const receiptW = 300, receiptH = 500;
+    const receiptLeft = Math.max(0, Math.round((window.screen.width - receiptW) / 2));
+    const receiptTop = Math.max(0, Math.round((window.screen.height - receiptH) / 2));
+    const printWindow = window.open('', '_blank', `width=${receiptW},height=${receiptH},left=${receiptLeft},top=${receiptTop}`);
     if (!printWindow) {
         alert("Please allow pop-ups to print the receipt. Transaction aborted.");
         return; 
@@ -2371,6 +2430,8 @@ function renderSegmentLegend(variant) {
     `).join('');
 }
 
+let currentSegmentVariant = null;
+
 function renderSegmentTable(variant) {
     const body = document.getElementById('segmentTableBody');
     if (!body) return;
@@ -2381,18 +2442,114 @@ function renderSegmentTable(variant) {
             </td>
             <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155;">${variant.counts[i]}</td>
             <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155;">₱${Number(variant.avgSpend[i]).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:11px 12px; border-top:1px solid #f1f5f9;">
+                <button type="button" class="btn-view-segment" data-segment-index="${i}" style="background:#2563eb; color:#fff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12.5px; font-weight:600;">View</button>
+            </td>
         </tr>
     `).join('');
+
+    // (Re)bind the View buttons for this render
+    body.querySelectorAll('.btn-view-segment').forEach(btn => {
+        btn.onclick = () => showSegmentMembers(parseInt(btn.dataset.segmentIndex, 10));
+    });
 }
+
+function renderSegmentMemberRow(member) {
+    return `
+        <tr data-customer-id="${member.customer_id}">
+            <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155; font-weight:600;">${member.name}</td>
+            <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155;">₱${Number(member.total_spent).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155;" class="member-points-cell">${Number(member.loyalty_points).toLocaleString('en-US', {maximumFractionDigits:2})}</td>
+            <td style="padding:11px 12px; border-top:1px solid #f1f5f9;">
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="number" class="add-points-input" placeholder="Points" style="width:80px; padding:6px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px;">
+                    <button type="button" class="btn-add-points" style="background:#16a34a; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12.5px; font-weight:600;">Add</button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function showSegmentMembers(segmentIndex) {
+    if (!currentSegmentVariant) return;
+    const label = currentSegmentVariant.labels[segmentIndex];
+    const members = (currentSegmentVariant.members && currentSegmentVariant.members[segmentIndex]) || [];
+
+    const panel = document.getElementById('segmentMembersPanel');
+    const labelEl = document.getElementById('segmentMembersLabel');
+    const body = document.getElementById('segmentMembersBody');
+    const msg = document.getElementById('segmentMembersMessage');
+    if (!panel || !body) return;
+
+    labelEl.textContent = label;
+    msg.textContent = '';
+    body.innerHTML = members.length
+        ? members.map(renderSegmentMemberRow).join('')
+        : `<tr><td colspan="4" style="padding:14px 12px; text-align:center; color:#94a3b8;">No customers in this segment.</td></tr>`;
+
+    // Bind Add buttons for the freshly rendered rows
+    body.querySelectorAll('.btn-add-points').forEach(btn => {
+        btn.onclick = () => {
+            const row = btn.closest('tr');
+            const customerId = row.dataset.customerId;
+            const input = row.querySelector('.add-points-input');
+            const points = parseFloat(input.value);
+
+            if (isNaN(points) || points === 0) {
+                msg.style.color = '#dc2626';
+                msg.textContent = 'Enter a valid points amount first.';
+                return;
+            }
+
+            btn.disabled = true;
+            fetch('add_loyalty_points.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer_id: customerId, points: points })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    row.querySelector('.member-points-cell').textContent =
+                        Number(data.new_balance).toLocaleString('en-US', { maximumFractionDigits: 2 });
+                    input.value = '';
+                    msg.style.color = '#16a34a';
+                    msg.textContent = `Points updated for ${row.cells[0].textContent}.`;
+                } else {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = data.message || 'Failed to update points.';
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                msg.style.color = '#dc2626';
+                msg.textContent = 'Network error while updating points.';
+            });
+        };
+    });
+
+    panel.style.display = 'block';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+document.getElementById('segmentMembersCloseBtn')?.addEventListener('click', () => {
+    document.getElementById('segmentMembersPanel').style.display = 'none';
+});
 
 function applySegmentCount(n) {
     const variant = segmentVariants[n];
     if (!variant || !kmeansPieChart) return;
+    currentSegmentVariant = variant;
     kmeansPieChart.data.labels = variant.labels;
     kmeansPieChart.data.datasets[0].data = variant.counts;
     kmeansPieChart.update();
     renderSegmentLegend(variant);
     renderSegmentTable(variant);
+    // Hide the members panel when the segment count changes since bucket
+    // indices no longer line up with whatever was being viewed before.
+    const panel = document.getElementById('segmentMembersPanel');
+    if (panel) panel.style.display = 'none';
 }
 
 // profile

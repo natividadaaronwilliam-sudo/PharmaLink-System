@@ -1,5 +1,4 @@
-
-    // --- VARIABLE DECLARATIONS ---
+// --- VARIABLE DECLARATIONS ---
     const modal = document.getElementById("addItemModal");
     const addBtn = document.getElementById("addItemBtn");
     const closeBtn = document.getElementById("closeModal");
@@ -655,23 +654,31 @@ document.addEventListener("DOMContentLoaded", () => {
             editSupplierSelect.innerHTML = '<option value="">Select Supplier...</option>';
         }
 
-        // Loop through the data and populate both dropdowns
-        data.forEach(supplier => {
+        // Only show ACTIVE suppliers in the Add Lot dropdown, with a green dot indicator
+        const activeSuppliers = data.filter(s => (s.status || 'Active') === 'Active');
+
+        activeSuppliers.forEach(supplier => {
             const option = document.createElement('option');
             option.value = supplier.supplier_id;
-            option.textContent = supplier.supplier_name;
-                
-            // Populate the ADD Lot dropdown
-            if (addSupplierSelect) {
-                addSupplierSelect.appendChild(option.cloneNode(true)); 
-            }
-                
-            // Populate the EDIT Lot dropdown
-            if (editSupplierSelect) {
-                editSupplierSelect.appendChild(option); 
-            }
+            option.textContent = '🟢 ' + supplier.supplier_name;
 
-            
+            // Populate the ADD Lot dropdown (active suppliers only)
+            if (addSupplierSelect) {
+                addSupplierSelect.appendChild(option);
+            }
+        });
+
+        // Edit Lot dropdown keeps ALL suppliers (so existing lots with an
+        // inactive supplier still display correctly), but active ones get the dot
+        data.forEach(supplier => {
+            const editOption = document.createElement('option');
+            editOption.value = supplier.supplier_id;
+            const isActive = (supplier.status || 'Active') === 'Active';
+            editOption.textContent = (isActive ? '🟢 ' : '') + supplier.supplier_name + (isActive ? '' : ' (Inactive)');
+
+            if (editSupplierSelect) {
+                editSupplierSelect.appendChild(editOption);
+            }
         });
      })
      .catch(err => console.error('Failed to load suppliers:', err));
@@ -778,5 +785,3 @@ fetchInventory("all");
         fetchDrugsMaster();
     }, 20000);
 });
-
-    

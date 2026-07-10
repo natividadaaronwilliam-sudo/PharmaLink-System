@@ -18,10 +18,10 @@
     <h3>Upload History</h3>
     <table>
         <thead>
-            <tr><th>File</th><th>Date</th><th>Notes</th></tr>
+            <tr><th>File</th><th>Date</th><th>OCR Text</th><th>Availability</th></tr>
         </thead>
         <tbody id="prescriptionHistoryBody">
-            <tr><td colspan="3" style="text-align:center;color:#888;">Loading...</td></tr>
+            <tr><td colspan="4" style="text-align:center;color:#888;">Loading...</td></tr>
         </tbody>
     </table>
 </div>
@@ -33,12 +33,35 @@
     const msg = document.getElementById('prescriptionUploadMsg');
     const tbody = document.getElementById('prescriptionHistoryBody');
 
+    function renderAvailability(p) {
+        if (p.ocr_status === 'unavailable') {
+            return '<span style="color:#94a3b8;">OCR not installed on server</span>';
+        }
+        if (p.ocr_status === 'skipped_pdf') {
+            return '<span style="color:#94a3b8;">OCR skipped (PDF)</span>';
+        }
+        if (p.ocr_status === 'failed') {
+            return '<span style="color:#dc3545;">Could not read text</span>';
+        }
+        if (p.ocr_status === 'pending' || !p.ocr_status) {
+            return '<span style="color:#94a3b8;">Processing…</span>';
+        }
+        const matches = Array.isArray(p.availability_summary) ? p.availability_summary : [];
+        if (!matches.length) {
+            return '<span style="color:#94a3b8;">No matching medicine found</span>';
+        }
+        return matches.map(m => {
+            const color = m.status === 'In Stock' ? '#27ae60' : '#dc3545';
+            return `<div><strong>${m.name}</strong>: <span style="color:${color}; font-weight:600;">${m.status}</span></div>`;
+        }).join('');
+    }
+
     function loadHistory() {
         fetch('get_prescriptions.php')
             .then(r => r.json())
             .then(data => {
                 if (!data.success || !data.prescriptions.length) {
-                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;">No uploads yet.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;">No uploads yet.</td></tr>';
                     return;
                 }
                 tbody.innerHTML = data.prescriptions.map(p => `
@@ -46,10 +69,11 @@
                         <td>${p.filename}</td>
                         <td>${new Date(p.created_at).toLocaleString()}</td>
                         <td>${p.extracted_text ? p.extracted_text.substring(0, 80) : '—'}</td>
+                        <td>${renderAvailability(p)}</td>
                     </tr>`).join('');
             })
             .catch(() => {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:red;">Failed to load history.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:red;">Failed to load history.</td></tr>';
             });
     }
 
@@ -60,7 +84,7 @@
             const fd = new FormData();
             fd.append('prescription_file', fileInput.files[0]);
             msg.style.color = '#555';
-            msg.textContent = 'Uploading...';
+            msg.textContent = 'Uploading and reading prescription...';
             fetch('upload_prescription.php', { method: 'POST', body: fd })
                 .then(r => r.json())
                 .then(d => {

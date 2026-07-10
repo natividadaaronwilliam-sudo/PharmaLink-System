@@ -16,7 +16,8 @@ $staff = [];
 if ($admin_user_id && isset($conn)) {
     $sql_staff = "
         SELECT 
-            si.first_name, si.middle_name, si.last_name, si.email, si.phone_number, si.address, si.profile_image
+            si.first_name, si.middle_name, si.last_name, si.email, si.phone_number, si.address, si.profile_image,
+            u.username
         FROM staff_info si
         JOIN users u ON si.user_id = u.user_id
         JOIN role r ON u.role_id = r.role_id
@@ -33,6 +34,11 @@ if ($admin_user_id && isset($conn)) {
         $stmt->close();
     }
 }
+
+// Whatever was actually used as the account's login (username) is what should
+// reflect as the account email in the profile, so it always matches the real
+// logged-in staff instead of a separate, possibly-blank staff_info.email value.
+$staff_display_email = !empty($staff['email']) ? $staff['email'] : ($staff['username'] ?? '');
 
 // Sales analytics year (default: current year, from POS sales table)
 $analyticsYear = (int)($_GET['year'] ?? date('Y'));
@@ -823,7 +829,7 @@ $conn->close();
       </tr>
       <tr style="background:#f9fafb;">
         <td style="padding:8px 4px; font-weight:bold;">Email:</td>
-        <td style="padding:8px 4px;"><input type="email" id="email" class="p-input" value="<?= htmlspecialchars($staff['email'] ?? '') ?>" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
+        <td style="padding:8px 4px;"><input type="email" id="email" class="p-input" value="<?= htmlspecialchars($staff_display_email) ?>" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
       </tr>
       <tr>
         <td style="padding:8px 4px; font-weight:bold;">Phone:</td>

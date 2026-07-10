@@ -27,6 +27,21 @@ $current_stock   = isset($data['current_stock']) ? (int)$data['current_stock'] :
 $price           = isset($data['price']) ? (float)$data['price'] : 0;
 $supplier        = !empty($data['supplier']) ? (int)$data['supplier'] : null;
 
+if ($supplier !== null) {
+    $supplierStmt = $conn->prepare("SELECT supplier_id FROM suppliers WHERE supplier_id = ? AND status = 'Active' LIMIT 1");
+    $supplierStmt->bind_param("i", $supplier);
+    $supplierStmt->execute();
+    $supplierResult = $supplierStmt->get_result();
+
+    if (!$supplierResult || $supplierResult->num_rows === 0) {
+        $supplierStmt->close();
+        echo json_encode(["success" => false, "message" => "Please select an active supplier."]);
+        exit;
+    }
+
+    $supplierStmt->close();
+}
+
 $sql = "
     INSERT INTO inventory_lots (drug_id, lot_number, expiration_date, current_stock, price, supplier, is_active)
     VALUES (?, ?, ?, ?, ?, ?, 1)
