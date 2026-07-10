@@ -10,7 +10,7 @@ if (isset($_SESSION['user_id'])) {
         case 'admin':
             header('Location: admin.php');
             exit;
-        case 'cashier':
+        case 'cashier/pharmacist':
             header('Location: cashier.php');
             exit;
         case 'customer':

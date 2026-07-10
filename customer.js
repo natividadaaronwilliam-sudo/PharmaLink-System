@@ -472,18 +472,20 @@ function displayOrderDetails(data) {
             }
         })
         .catch(error => {
-            // CRITICAL FIX: Handle Network Error/Timeout
+            // CRITICAL FIX: a network error/timeout here does NOT mean the
+            // order was saved. The previous version of this code assumed
+            // success, deleted every item from `cart`, and showed a fake
+            // receipt — that's why items appeared to vanish right after
+            // checkout even though nothing had actually been ordered.
+            //
+            // The cart is now left untouched on failure. The customer can
+            // safely click "Submit Order for Pickup" again: process_customer_order.php
+            // is idempotent per order_token, so even if the first request
+            // actually did reach the server, retrying will NOT create a
+            // duplicate order or double-deduct stock — it just returns the
+            // original order.
             console.error('Network Error or Timeout during checkout:', error);
-            
-            alert('⚠️ Order placed successfully, but connection timed out. Please check your "My Orders" tab to confirm. You cannot resubmit this order.');
-            
-            // Assume success, clear the cart locally, and reload orders
-            for (let lotId in cart) delete cart[lotId];
-            updateCartPanel();
-            loadCustomerOrders();
-            
-            // Optionally show the receipt modal with a "status pending" notice
-            showReceiptModal("Pending/Unknown", finalTotal, orderData.items); 
+            alert('⚠️ Could not reach the server to place your order. Your cart has been kept — please check your connection and try again.');
         })
         .finally(() => {
             if (checkoutBtn) {

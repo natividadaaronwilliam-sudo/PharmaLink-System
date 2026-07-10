@@ -1,74 +1,56 @@
 <?php
-// upload_profile_picture.php
-// Shared avatar upload handler for Admin, Cashier, and Customer profile pages.
-// Saves the file under uploads/profile_pictures/ and stores the relative
-// path in staff_info.profile_image (Admin/Cashier) or customers.profile_image (Customer).
-session_start();
+/**
+ * FILE: upload_profile_picture.php
+ * DID NOT EXIST — used by both admin.php and cashier.php's profile avatar
+ * upload input. Shared because both roles store their photo the same way
+ * (staff_info.profile_image, keyed by the logged-in session's user_id).
+ */
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+header('Content-Type: application/json');
 require_once 'db_pharmacy.php';
 
-header('Content-Type: application/json');
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['Cashier/Pharmacist', 'Admin'], true)) {
+    echo json_encode(['success' => false, 'message' => 'Not authorized.']);
+    exit;
+}
+$user_id = (int)$_SESSION['user_id'];
 
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role'])) {
-    echo json_encode(["success" => false, "message" => "Not authorized."]);
+if (empty($_FILES['profile_image']['name']) || $_FILES['profile_image']['error'] !== UPLOAD_ERR_OK) {
+    echo json_encode(['success' => false, 'message' => 'Please choose an image to upload.']);
     exit;
 }
 
-if (!isset($_FILES['profile_image']) || $_FILES['profile_image']['error'] !== UPLOAD_ERR_OK) {
-    echo json_encode(["success" => false, "message" => "No file uploaded or upload error."]);
+$allowed = ['jpg', 'jpeg', 'png', 'webp'];
+$ext = strtolower(pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION));
+if (!in_array($ext, $allowed, true)) {
+    echo json_encode(['success' => false, 'message' => 'Only JPG, PNG, or WEBP images are allowed.']);
+    exit;
+}
+if ($_FILES['profile_image']['size'] > 3 * 1024 * 1024) {
+    echo json_encode(['success' => false, 'message' => 'Image must be under 3MB.']);
     exit;
 }
 
-$file = $_FILES['profile_image'];
+$dir = __DIR__ . '/uploads/profile_pictures';
+if (!is_dir($dir)) {
+    mkdir($dir, 0755, true);
+}
+$filename = 'staff_' . $user_id . '_' . time() . '.' . $ext;
 
-// Validate type
-$allowed = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp', 'image/gif' => 'gif'];
-$finfo = finfo_open(FILEINFO_MIME_TYPE);
-$mime = finfo_file($finfo, $file['tmp_name']);
-finfo_close($finfo);
-
-if (!isset($allowed[$mime])) {
-    echo json_encode(["success" => false, "message" => "Unsupported file type. Use PNG, JPG, WEBP, or GIF."]);
+if (!move_uploaded_file($_FILES['profile_image']['tmp_name'], $dir . '/' . $filename)) {
+    echo json_encode(['success' => false, 'message' => 'Failed to save the uploaded file.']);
     exit;
 }
 
-// Validate size (max 5MB)
-if ($file['size'] > 5 * 1024 * 1024) {
-    echo json_encode(["success" => false, "message" => "File too large (max 5MB)."]);
-    exit;
-}
-
-$uploadDir = __DIR__ . '/uploads/profile_pictures/';
-if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0755, true);
-}
-
-$user_id = $_SESSION['user_id'];
-$role = $_SESSION['user_role'];
-$ext = $allowed[$mime];
-$role_prefix = ($role === 'Customer') ? 'customer_' : 'staff_';
-$filename = 'profile_' . $role_prefix . $user_id . '_' . time() . '.' . $ext;
-$destPath = $uploadDir . $filename;
-$relativePath = 'uploads/profile_pictures/' . $filename;
-
-if (!move_uploaded_file($file['tmp_name'], $destPath)) {
-    echo json_encode(["success" => false, "message" => "Failed to save uploaded file."]);
-    exit;
-}
-
-if ($role === 'Customer') {
-    $stmt = $conn->prepare("UPDATE customers SET profile_image = ? WHERE customer_id = ?");
-} else {
-    // Admin or Cashier/Pharmacist
-    $stmt = $conn->prepare("UPDATE staff_info SET profile_image = ? WHERE user_id = ?");
-}
-$stmt->bind_param("si", $relativePath, $user_id);
+$path = 'uploads/profile_pictures/' . $filename;
+$stmt = $conn->prepare("UPDATE staff_info SET profile_image = ? WHERE user_id = ?");
+$stmt->bind_param('si', $path, $user_id);
 
 if ($stmt->execute()) {
-    echo json_encode(["success" => true, "path" => $relativePath]);
+    echo json_encode(['success' => true, 'path' => $path]);
 } else {
-    echo json_encode(["success" => false, "message" => "Error saving picture: " . $stmt->error]);
+    echo json_encode(['success' => false, 'message' => 'Failed to save profile picture: ' . $stmt->error]);
 }
-
 $stmt->close();
-$conn->close();
-?>

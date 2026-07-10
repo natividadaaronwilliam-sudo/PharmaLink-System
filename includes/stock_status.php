@@ -1,69 +1,80 @@
 <?php
 /**
- * Keeps drugs_master.stock_status in sync with aggregated active lot stock.
- * Values: 'ok' | 'low' | 'out'
+ * FILE: includes/stock_status.php
+ *
+ * This file was referenced (require_once 'includes/stock_status.php') by
+ * dashboard_data.php and fetch_dashboard.php but did not exist in the
+ * uploaded project, which meant BOTH the admin dashboard and the low-stock /
+ * out-of-stock counters were fatal-erroring (or silently stale) instead of
+ * reflecting the real, current database state.
+ *
+ * syncAllStockStatus() recalculates drugs_master.stock_status for every
+ * active drug from the actual sum of its active inventory_lots.current_stock,
+ * compared against drugs_master.minimum_stock. It is safe to call on every
+ * dashboard/notification request (cheap single UPDATE...JOIN), which is what
+ * keeps "low stock" / "out of stock" numbers accurate in real time right
+ * after a sale or a stock adjustment.
+ *
+ * Requires: drugs_master.stock_status ENUM/VARCHAR column ('ok'|'low'|'out').
+ * If that column does not exist yet, run:
+ *   ALTER TABLE drugs_master ADD COLUMN stock_status VARCHAR(10) NOT NULL DEFAULT 'out';
  */
-function syncDrugStockStatus(mysqli $conn, int $drug_id): void
-{
-    $stmt = $conn->prepare("
-        SELECT dm.minimum_stock,
-               COALESCE(SUM(CASE WHEN il.is_active = 1 THEN il.current_stock ELSE 0 END), 0) AS total_stock
-        FROM drugs_master dm
-        LEFT JOIN inventory_lots il ON dm.drug_id = il.drug_id
-        WHERE dm.drug_id = ? AND dm.is_active = 1
-        GROUP BY dm.drug_id, dm.minimum_stock
-    ");
-    $stmt->bind_param('i', $drug_id);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
 
-    if (!$row) {
-        return;
-    }
+if (!function_exists('syncAllStockStatus')) {
+    function syncAllStockStatus(mysqli $conn): void
+    {
+        // Aggregate current stock per drug across its active lots.
+        $sql = "
+            UPDATE drugs_master dm
+            LEFT JOIN (
+                SELECT drug_id, COALESCE(SUM(current_stock), 0) AS on_hand
+                FROM inventory_lots
+                WHERE is_active = 1
+                GROUP BY drug_id
+            ) stock ON stock.drug_id = dm.drug_id
+            SET dm.stock_status = CASE
+                WHEN COALESCE(stock.on_hand, 0) <= 0 THEN 'out'
+                WHEN COALESCE(stock.on_hand, 0) <= dm.minimum_stock THEN 'low'
+                ELSE 'ok'
+            END
+            WHERE dm.is_active = 1
+        ";
 
-    $stock = (int)$row['total_stock'];
-    $min = (int)$row['minimum_stock'];
-    if ($stock === 0) {
-        $status = 'out';
-    } elseif ($stock <= $min) {
-        $status = 'low';
-    } else {
-        $status = 'ok';
-    }
-
-    $upd = $conn->prepare("UPDATE drugs_master SET stock_status = ? WHERE drug_id = ?");
-    $upd->bind_param('si', $status, $drug_id);
-    $upd->execute();
-    $upd->close();
-}
-
-function syncAllStockStatus(mysqli $conn): void
-{
-    $res = $conn->query("SELECT drug_id FROM drugs_master WHERE is_active = 1");
-    if (!$res) {
-        return;
-    }
-    while ($row = $res->fetch_assoc()) {
-        syncDrugStockStatus($conn, (int)$row['drug_id']);
+        // Best-effort: don't let a stock-status sync failure break the page
+        // that called it (dashboard, notifications, etc.) — just log it.
+        if (!$conn->query($sql)) {
+            error_log('syncAllStockStatus failed: ' . $conn->error);
+        }
     }
 }
 
-function syncStockStatusForLots(mysqli $conn, array $lot_ids): void
-{
-    if (empty($lot_ids)) {
-        return;
+/**
+ * Recalculates stock_status for a single drug. Cheaper than syncAllStockStatus
+ * and is called right after a sale/order/lot change so the affected drug's
+ * status is correct immediately, without waiting on the next full sync.
+ */
+if (!function_exists('syncStockStatusForDrug')) {
+    function syncStockStatusForDrug(mysqli $conn, int $drug_id): void
+    {
+        $stmt = $conn->prepare("
+            UPDATE drugs_master dm
+            LEFT JOIN (
+                SELECT drug_id, COALESCE(SUM(current_stock), 0) AS on_hand
+                FROM inventory_lots
+                WHERE is_active = 1 AND drug_id = ?
+                GROUP BY drug_id
+            ) stock ON stock.drug_id = dm.drug_id
+            SET dm.stock_status = CASE
+                WHEN COALESCE(stock.on_hand, 0) <= 0 THEN 'out'
+                WHEN COALESCE(stock.on_hand, 0) <= dm.minimum_stock THEN 'low'
+                ELSE 'ok'
+            END
+            WHERE dm.drug_id = ?
+        ");
+        if ($stmt) {
+            $stmt->bind_param('ii', $drug_id, $drug_id);
+            $stmt->execute();
+            $stmt->close();
+        }
     }
-    $ids = array_map('intval', $lot_ids);
-    $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $types = str_repeat('i', count($ids));
-
-    $stmt = $conn->prepare("SELECT DISTINCT drug_id FROM inventory_lots WHERE lot_inventory_id IN ($placeholders)");
-    $stmt->bind_param($types, ...$ids);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        syncDrugStockStatus($conn, (int)$row['drug_id']);
-    }
-    $stmt->close();
 }

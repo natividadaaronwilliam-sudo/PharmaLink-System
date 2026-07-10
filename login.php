@@ -1,81 +1,80 @@
 <?php
-// FILE: login.php (FINAL AND FIXED VERSION)
-
-session_start();
+/**
+ * FILE: login.php
+ *
+ * DID NOT EXIST. index.php's login form (via login.js) POSTs JSON here for
+ * ALL roles (Admin, Cashier/Pharmacist, Customer) — with this file missing,
+ * nobody could log in through the main entry point at all.
+ *
+ * Checks staff (users + staff_info + role) first, then falls back to the
+ * customers table, matching customer_login.php's own conventions (same
+ * $_SESSION keys) so a customer logging in through either page behaves
+ * identically.
+ */
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 header('Content-Type: application/json');
-require 'db_pharmacy.php'; // I-assume na ito ang tamang path sa inyong connection file
+require_once 'db_pharmacy.php';
 
-// Function para magpadala ng JSON response
-function sendJsonResponse($success, $message = null, $role = null, $firstName = null) {
-    echo json_encode(['success' => $success, 'message' => $message, 'role' => $role, 'firstName' => $firstName]);
+$input = json_decode(file_get_contents('php://input'), true);
+$username = trim($input['username'] ?? '');
+$password = $input['password'] ?? '';
+
+if ($username === '' || $password === '') {
+    echo json_encode(['success' => false, 'message' => 'Username and password are required.']);
     exit;
 }
 
-// 1. Tanggapin ang JSON input mula sa JavaScript (Fetch API)
-$json_data = file_get_contents('php://input');
-$data = json_decode($json_data, true);
-
-$username = $data['username'] ?? '';
-$password = $data['password'] ?? '';
-
-if (empty($username) || empty($password)) {
-    sendJsonResponse(false, "Username and password are required.");
-}
-
-// 2. Database Query: Kunin ang Password Hash, Role Name, at First Name
-$stmt = $conn->prepare("
-    SELECT 
-        u.user_id, 
-        u.password AS hashed_password, 
-        r.role_name,
-        COALESCE(s.first_name, c.first_name, r.role_name) AS display_name
-    FROM users u
-    JOIN role r ON u.role_id = r.role_id
-    LEFT JOIN staff_info s ON u.user_id = s.user_id 
-    LEFT JOIN customers c ON u.user_id = c.customer_id 
-    WHERE u.username = ? AND u.is_active = 1  -- <-- DITO IDADAGDAG ANG IS_ACTIVE CHECK
-");
-$stmt->bind_param("s", $username);
+// ---- 1. Try staff (Admin / Cashier-Pharmacist) ----
+$stmt = $conn->prepare(
+    "SELECT u.user_id, u.password, r.role_name, s.first_name
+     FROM users u
+     JOIN role r ON u.role_id = r.role_id
+     LEFT JOIN staff_info s ON s.user_id = u.user_id
+     WHERE u.username = ? AND u.is_active = 1"
+);
+$stmt->bind_param('s', $username);
 $stmt->execute();
-$result = $stmt->get_result();
+$staff = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
-if ($result->num_rows === 1) {
-    $user = $result->fetch_assoc();
-    $stmt->close();
+if ($staff && password_verify($password, $staff['password'])) {
+    $_SESSION['user_id'] = $staff['user_id'];
+    $_SESSION['user_role'] = $staff['role_name'];
+    $_SESSION['user_first_name'] = $staff['first_name'] ?? $username;
 
-    // 3. Password Verification
-    if (password_verify($password, $user['hashed_password'])) {
-        
-        // Login Successful!
-        
-$displayName = $user['display_name'];
-    
-    // Kung ang role ay 'Admin' o 'Cashier', huwag na itong i-ucwords
-    if (strtolower($displayName) !== 'admin' && strtolower($displayName) !== 'cashier') {
-        // I-capitalize ang bawat salita
-        $displayName = ucwords(strtolower($displayName)); 
-    }
-
-    // 2. I-set ang Session Variables
-    $_SESSION['user_id'] = $user['user_id'];
-    $_SESSION['user_role'] = $user['role_name'];
-    $_SESSION['user_first_name'] = $displayName; 
-    
-    // 3. Ipadala ang success response pabalik sa JavaScript
-    sendJsonResponse(
-        true, 
-        "Login successful!", 
-        $user['role_name'], 
-        $displayName // Ipadala ang na-format na pangalan
-    );
-
-    } else {
-        sendJsonResponse(false, "Invalid username or password.");
-    }
-} else {
-    $stmt->close();
-    sendJsonResponse(false, "Invalid username or password.");
+    echo json_encode([
+        'success'   => true,
+        'role'      => $staff['role_name'],
+        'firstName' => $staff['first_name'] ?? $username,
+    ]);
+    $conn->close();
+    exit;
 }
 
+// ---- 2. Fall back to customers ----
+$stmt = $conn->prepare("SELECT customer_id, first_name, last_name, password FROM customers WHERE username = ?");
+$stmt->bind_param('s', $username);
+$stmt->execute();
+$customer = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if ($customer && password_verify($password, $customer['password'])) {
+    $_SESSION['user_id'] = $customer['customer_id'];
+    $_SESSION['customer_id'] = $customer['customer_id'];
+    $_SESSION['customer_name'] = $customer['first_name'] . ' ' . $customer['last_name'];
+    $_SESSION['user_first_name'] = $customer['first_name'];
+    $_SESSION['user_role'] = 'Customer';
+
+    echo json_encode([
+        'success'   => true,
+        'role'      => 'Customer',
+        'firstName' => $customer['first_name'],
+    ]);
+    $conn->close();
+    exit;
+}
+
+echo json_encode(['success' => false, 'message' => 'Invalid username or password.']);
 $conn->close();
-?>

@@ -27,7 +27,11 @@ if ($new !== $confirm) {
 }
 
 $user_id = (int)$_SESSION['user_id'];
-$stmt = $conn->prepare('SELECT password FROM users WHERE user_id = ?');
+$is_customer = strtolower($_SESSION['user_role'] ?? '') === 'customer';
+$table = $is_customer ? 'customers' : 'users';
+$id_col = $is_customer ? 'customer_id' : 'user_id';
+
+$stmt = $conn->prepare("SELECT password FROM $table WHERE $id_col = ?");
 $stmt->bind_param('i', $user_id);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
@@ -39,7 +43,7 @@ if (!$row || !password_verify($current, $row['password'])) {
 }
 
 $hash = password_hash($new, PASSWORD_BCRYPT);
-$upd = $conn->prepare('UPDATE users SET password = ? WHERE user_id = ?');
+$upd = $conn->prepare("UPDATE $table SET password = ? WHERE $id_col = ?");
 $upd->bind_param('si', $hash, $user_id);
 if ($upd->execute()) {
     echo json_encode(['success' => true, 'message' => 'Password updated successfully.']);

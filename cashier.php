@@ -1,6 +1,14 @@
 <?php
 session_start();
 
+// SECURITY FIX: this page previously had no login/role check at all — it
+// was reachable by anyone who typed the URL, logged in or not, and could
+// process real sales against the database.
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['Cashier/Pharmacist', 'Admin'], true)) {
+    header('Location: index.php');
+    exit;
+}
+
 // 1. Tiyakin na nag-iisa lang ang Database Connection
 // Ang $conn variable ang gagamitin sa lahat ng queries.
 require_once 'db_pharmacy.php'; 
@@ -1616,6 +1624,12 @@ const calculatedTaxRate = (TAX_RATE * 100).toFixed(0); // e.g., 12
     taxLabel.textContent = `Tax (${calculatedTaxRate}%):`;
 
 // ===== LOAD PRODUCTS =====
+// Wrapped in a named function (was a one-shot inline fetch) so it can also
+// be called again right after a successful sale — that's what keeps the
+// on-screen stock numbers accurate against the real database instead of
+// relying only on the client-side "visual" decrement, which could drift
+// out of sync if another cashier or an online order sells the same item.
+function loadPOSProducts() {
 fetch("get_products.php")
     .then(res => res.json())
     .then(products => {
@@ -1704,6 +1718,8 @@ document.querySelectorAll(".add-btn").forEach(btn => {
 });
     })
     .catch(err => console.error("Error loading products:", err));
+}
+loadPOSProducts();
              // If fetch fails, this alert helps diagnose:
              // alert("Failed to load products. Check console for details.");
 
@@ -1806,6 +1822,11 @@ confirmSale.addEventListener("click", () => {
             // I-clear ang cart at i-reset ang POS state
             clearCart(); 
             loadTransactionHistory();
+
+            // Pull the real, current stock from the database now that the
+            // sale has been committed — keeps the POS grid accurate even
+            // if another cashier or an online order affected the same items.
+            loadPOSProducts();
 
             // ⭐ ONLINE ORDER FINALIZATION LOGIC ⭐
             if (currentOnlineOrderId !== null) {

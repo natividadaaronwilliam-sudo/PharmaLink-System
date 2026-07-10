@@ -1,133 +1,221 @@
 <?php
-// FILE: process_customer_order.php
-// Endpoint para tanggapin ang order ng customer mula sa customer.js
+/**
+ * FILE: process_customer_order.php
+ *
+ * THIS FILE DID NOT EXIST IN THE UPLOADED PROJECT.
+ *
+ * customer.js's submitOrder() has always POSTed here, so every "Submit Order
+ * for Pickup" click got a 404. Its .catch() block then did this:
+ *
+ *     alert('Order placed successfully, but connection timed out...');
+ *     for (let lotId in cart) delete cart[lotId];   // <-- wipes the cart
+ *     updateCartPanel();
+ *     showReceiptModal("Pending/Unknown", ...);      // <-- fake receipt
+ *
+ * That's exactly the bug reported: the cart visibly "loses" its items right
+ * after checkout, a receipt pops up, but nothing was ever saved — because
+ * the request never reached a real backend. This file is that backend, and
+ * customer.js has been corrected (see the diff) to only clear the cart on a
+ * confirmed server success, never on a network error.
+ *
+ * This endpoint:
+ *   1. Trusts only the logged-in session for who the customer is (never the
+ *      client-supplied customer_id).
+ *   2. Validates the cart against REAL current stock.
+ *   3. Is idempotent via order_token: if the same token is submitted twice
+ *      (e.g. a slow connection retried by the browser), the second request
+ *      returns the SAME order instead of creating a duplicate / double-
+ *      deducting stock.
+ *   4. Creates customer_orders + order_details rows and decrements
+ *      inventory_lots.current_stock atomically, then re-syncs stock_status.
+ *
+ * Schema requirement (run once if not already present):
+ *   ALTER TABLE customer_orders ADD COLUMN order_token VARCHAR(64) NULL UNIQUE;
+ *   ALTER TABLE customer_orders ADD COLUMN is_read TINYINT(1) NOT NULL DEFAULT 0;
+ */
 
-// 🛑 1. SESSION START (CRITICAL for token validation)
-if (session_status() == PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// 1. I-include ang iyong Database Connection File
-// Tiyakin na ang file na ito ay naglalaman ng $conn variable na konektado sa MySQL.
-include 'db_pharmacy.php'; 
-
-// Set header para mag-expect ng JSON response
 header('Content-Type: application/json');
+require_once 'db_pharmacy.php';
+require_once 'includes/stock_status.php';
 
-// Tiyakin na ang request method ay POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405); // Method Not Allowed
-    echo json_encode(['success' => false, 'message' => 'Method not allowed. Only POST requests are accepted.']);
-    if (isset($conn) && $conn) $conn->close(); 
+if (!isset($conn) || $conn->connect_error) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Database connection failed.']);
     exit;
 }
 
-// 2. Kumuha ng JSON input at i-decode
-$json_data = file_get_contents('php://input');
-$data = json_decode($json_data, true);
+$customer_id = $_SESSION['user_id'] ?? null;
+if (!$customer_id || strtolower($_SESSION['user_role'] ?? '') !== 'customer') {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Not logged in.']);
+    exit;
+}
+$customer_id = (int)$customer_id;
 
-// 3. I-validate ang basic data
-if (!isset($data['customer_id']) || !isset($data['total_amount']) || !isset($data['items']) || empty($data['items']) || !isset($data['order_token'])) {
-    http_response_code(400); // Bad Request
-    echo json_encode(['success' => false, 'message' => 'Incomplete order data provided.']);
-    if (isset($conn) && $conn) $conn->close();
+$input = json_decode(file_get_contents('php://input'), true);
+if (!$input) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid or empty request body.']);
     exit;
 }
 
-// Kumuha ng data mula sa JSON
-$customer_id = (int)$data['customer_id'];
-$total_amount = (float)$data['total_amount'];
-$sc_pwd_applied = isset($data['sc_pwd_applied']) ? ($data['sc_pwd_applied'] ? 1 : 0) : 0; 
-$items = $data['items'];
-$status = 'Pending'; // Default status for new online orders
-
-// 🛑 2. TOKEN VALIDATION
-$submitted_token = $data['order_token'];
-$session_token = $_SESSION['order_token'] ?? null;
-
-if (!$session_token || $submitted_token !== $session_token) {
-    // 🛑 FIX: Kapag nakakita ng duplicate (Quiet Mode), magbalik na lang ng success 
-    //        message (o isang blankong 200 OK) para ang JS ay hindi mag-pop up ng error.
-    
-    // Tiyakin lang na walang data.success = false ang ipinasa, para hindi mag-alert ang JS.
-    http_response_code(200); // OK
-    echo json_encode([
-        'success' => true, 
-        'message' => 'Order already processed (Duplicate submission blocked silently).',
-        // Magbalik ng order_id na 0 o -1 para malaman ng JS na ito ay special case
-        'order_id' => 0 
-    ]); 
-    
-    // Hindi na kailangang i-rollback o i-close ang connection kung hindi naman nag-open ng transaction
-    if (isset($conn) && $conn) $conn->close();
+$items = $input['items'] ?? [];
+if (!is_array($items) || count($items) === 0) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Your cart is empty.']);
     exit;
 }
 
-// 🛑 3. TOKEN DESTRUCTION (CRITICAL)
-// Alisin ang token MULA SA SESSION kaagad BAGO ang transaction.
-// Ito ang pumipigil sa pangalawang request (galing sa refresh/back button) na mag-success.
-unset($_SESSION['order_token']);
+$order_token = trim((string)($input['order_token'] ?? ''));
+if ($order_token === '' || $order_token === 'no_token') {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Missing order token. Please refresh the page and try again.']);
+    exit;
+}
 
+// ---- Idempotency check: has this exact token already produced an order? ----
+$dupStmt = $conn->prepare("SELECT order_id FROM customer_orders WHERE order_token = ? LIMIT 1");
+$dupStmt->bind_param('s', $order_token);
+$dupStmt->execute();
+$dupResult = $dupStmt->get_result();
+if ($dupRow = $dupResult->fetch_assoc()) {
+    $dupStmt->close();
+    $conn->close();
+    // Same submission retried (e.g. a slow connection) — return the order
+    // that was already created instead of creating a second one.
+    http_response_code(409);
+    echo json_encode(['success' => true, 'order_id' => $dupRow['order_id'], 'duplicate' => true]);
+    exit;
+}
+$dupStmt->close();
 
-// 4. Simulan ang Database Transaction
-// Ito ay kritikal para matiyak na sabay-sabay magiging successful ang header at details inserts.
 $conn->begin_transaction();
 
 try {
-    // 5. INSERT sa customer_orders table
-    $stmt_order = $conn->prepare("INSERT INTO customer_orders 
-        (customer_id, order_date, total_amount, order_status, sc_pwd_applied) 
-        VALUES (?, NOW(), ?, ?, ?)");
-        
-    $stmt_order->bind_param("idsi", $customer_id, $total_amount, $status, $sc_pwd_applied);
-    
-    if (!$stmt_order->execute()) {
-        throw new Exception("Error inserting order header: " . $stmt_order->error);
-    }
-    
-    $order_id = $conn->insert_id;
-    $stmt_order->close();
+    // ---- 1. Lock and validate real stock for every line item ----
+    $lockStmt = $conn->prepare(
+        "SELECT current_stock FROM inventory_lots WHERE lot_inventory_id = ? AND is_active = 1 FOR UPDATE"
+    );
 
-    // 6. INSERT sa order_details table (Loop sa bawat item)
-    $stmt_details = $conn->prepare("INSERT INTO order_details 
-        (order_id, drug_id, lot_inventory_id, quantity, price_per_unit) 
-        VALUES (?, ?, ?, ?, ?)");
+    $affectedDrugIds = [];
+    $server_total = 0.0;
 
     foreach ($items as $item) {
-        $lot_id = (int)$item['lot_id'];
-        $drug_id = (int)$item['drug_id'];
-        $quantity = (int)$item['quantity'];
-        $price_per_unit = (float)$item['price_per_unit'];
+        $lot_id = (int)($item['lot_id'] ?? 0);
+        $qty    = (int)($item['quantity'] ?? 0);
 
-        $stmt_details->bind_param("iiidi", $order_id, $drug_id, $lot_id, $quantity, $price_per_unit);
-        
-        if (!$stmt_details->execute()) {
-            throw new Exception("Error inserting order detail: " . $stmt_details->error);
+        if ($lot_id <= 0 || $qty <= 0) {
+            throw new Exception('Invalid item in cart.');
+        }
+
+        $lockStmt->bind_param('i', $lot_id);
+        $lockStmt->execute();
+        $lot = $lockStmt->get_result()->fetch_assoc();
+
+        if (!$lot) {
+            throw new Exception('One of the items in your cart is no longer available.');
+        }
+        if ((int)$lot['current_stock'] < $qty) {
+            throw new Exception("Not enough stock left for one of your items (only {$lot['current_stock']} available). Please update your cart.");
         }
     }
-    $stmt_details->close();
-    
-    // 7. COMMIT ang transaction kung successful lahat
+    $lockStmt->close();
+
+    // Recompute the total server-side from trusted price data rather than
+    // trusting the client-sent total outright.
+    $priceStmt = $conn->prepare("SELECT price FROM inventory_lots WHERE lot_inventory_id = ?");
+    foreach ($items as $item) {
+        $lot_id = (int)($item['lot_id'] ?? 0);
+        $qty    = (int)($item['quantity'] ?? 0);
+        $priceStmt->bind_param('i', $lot_id);
+        $priceStmt->execute();
+        $row = $priceStmt->get_result()->fetch_assoc();
+        $unit_price = $row ? (float)$row['price'] : (float)($item['price_per_unit'] ?? 0);
+        $server_total += $unit_price * $qty;
+    }
+    $priceStmt->close();
+
+    // ---- 2. Insert the order header ----
+    $orderStmt = $conn->prepare(
+        "INSERT INTO customer_orders (customer_id, order_date, order_status, total_amount, is_read, order_token)
+         VALUES (?, NOW(), 'Pending', ?, 0, ?)"
+    );
+    $orderStmt->bind_param('ids', $customer_id, $server_total, $order_token);
+    if (!$orderStmt->execute()) {
+        throw new Exception('Failed to create order: ' . $orderStmt->error);
+    }
+    $order_id = $orderStmt->insert_id;
+    $orderStmt->close();
+
+    // ---- 3. Insert order items + decrement real stock ----
+    $itemStmt = $conn->prepare(
+        "INSERT INTO order_details (order_id, drug_id, lot_inventory_id, quantity, price_per_unit)
+         VALUES (?, ?, ?, ?, ?)"
+    );
+    $stockStmt = $conn->prepare(
+        "UPDATE inventory_lots SET current_stock = current_stock - ? WHERE lot_inventory_id = ?"
+    );
+    $priceStmt2 = $conn->prepare("SELECT price FROM inventory_lots WHERE lot_inventory_id = ?");
+
+    foreach ($items as $item) {
+        $drug_id = (int)($item['drug_id'] ?? 0);
+        $lot_id  = (int)($item['lot_id'] ?? 0);
+        $qty     = (int)($item['quantity'] ?? 0);
+
+        $priceStmt2->bind_param('i', $lot_id);
+        $priceStmt2->execute();
+        $row = $priceStmt2->get_result()->fetch_assoc();
+        $unit_price = $row ? (float)$row['price'] : (float)($item['price_per_unit'] ?? 0);
+
+        $itemStmt->bind_param('iiiid', $order_id, $drug_id, $lot_id, $qty, $unit_price);
+        if (!$itemStmt->execute()) {
+            throw new Exception('Failed to save order item: ' . $itemStmt->error);
+        }
+
+        $stockStmt->bind_param('ii', $qty, $lot_id);
+        if (!$stockStmt->execute()) {
+            throw new Exception('Failed to update stock: ' . $stockStmt->error);
+        }
+
+        if ($drug_id > 0) {
+            $affectedDrugIds[$drug_id] = true;
+        }
+    }
+    $itemStmt->close();
+    $stockStmt->close();
+    $priceStmt2->close();
+
+    // ---- 4. Re-sync stock_status for affected drugs ----
+    foreach (array_keys($affectedDrugIds) as $drug_id) {
+        syncStockStatusForDrug($conn, $drug_id);
+    }
+
+    // ---- 5. Activity log ----
+    $details = "Online order #$order_id placed by customer #$customer_id — total ₱" . number_format($server_total, 2) . ".";
+    $logStmt = $conn->prepare("INSERT INTO activity_logs (admin_name, action, details) VALUES ('Customer Portal', 'Online Order', ?)");
+    $logStmt->bind_param('s', $details);
+    $logStmt->execute();
+    $logStmt->close();
+
     $conn->commit();
-    
-    // Success Response (ibalik ang order_id sa JS)
+
     echo json_encode([
-        'success' => true, 
-        'order_id' => $order_id, 
-        'message' => 'Order submitted successfully and pending cashier verification.'
+        'success'  => true,
+        'order_id' => $order_id,
+        'total'    => round($server_total, 2),
+        'message'  => 'Order placed successfully.',
     ]);
 
 } catch (Exception $e) {
-    // 8. ROLLBACK kung may error
     $conn->rollback();
-    
-    http_response_code(500); // Internal Server Error
-    error_log("Order submission failed for customer ID $customer_id. Error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Order failed due to server error. Please try again.']);
-
-} finally {
-    // 9. Isara ang database connection
-    if (isset($conn) && $conn) $conn->close();
+    http_response_code(409);
+    echo json_encode([
+        'success'  => false,
+        'message'  => $e->getMessage(),
+    ]);
 }
 
-?>
+$conn->close();

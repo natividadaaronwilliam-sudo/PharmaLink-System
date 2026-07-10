@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'Admin') {
     header('Location: index.php');
     exit;
 }
@@ -267,7 +267,7 @@ $conn->close();
     <div class="sidebar">
         <div class="sidebar-header">
             <h2>PharmaLink</h2>
-            <span class="role-badge">ADMIN</span>
+            <span class="role">ADMIN</span>
         </div>
         <div class="sidebar-nav">
             <div class="nav-item active" data-target="dashboard"><i class="fas fa-home"></i><span>Dashboard</span></div>

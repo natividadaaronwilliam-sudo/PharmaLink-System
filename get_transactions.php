@@ -15,15 +15,18 @@ if (!isset($conn) || $conn->connect_error) {
 
 try {
     // MySQLi Query
+    // NOTE: the "sales" table's primary key is sale_id, not transaction_id.
+    // It's aliased here because cashier.js reads t.transaction_id from this
+    // response (and from transactions.php's response) to display it.
     $query = "
         SELECT 
-            transaction_id, 
+            sale_id AS transaction_id, 
             total_amount, 
             cash_received, 
             change_amount, 
             date_created 
         FROM 
-            SALES 
+            sales 
         WHERE 
             status = 'completed'
         ORDER BY 
