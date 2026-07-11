@@ -208,6 +208,322 @@ $staff_display_email = !empty($staff['email']) ? $staff['email'] : ($staff['user
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ==== Profile page styles (reused from customer.css so Admin/Cashier/Customer profiles look consistent) ==== */
+
+/* =======================================
+   9. PROFILE PAGE
+   ======================================= */
+.customer-profile-page {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 18px 0 36px;
+}
+
+.customer-profile-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.customer-profile-header h2 {
+    margin: 0;
+    color: #1e3a8a;
+    font-size: 1.75rem;
+    line-height: 1.2;
+}
+
+.customer-profile-header p {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+.customer-profile-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 300px) minmax(420px, 1fr) minmax(260px, 300px);
+    gap: 20px;
+    align-items: start;
+}
+
+.profile-summary-card,
+.profile-details-card,
+.profile-password-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.profile-summary-card {
+    padding: 28px 22px;
+    text-align: center;
+}
+
+.profile-avatar-wrap {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    margin: 0 auto 16px;
+}
+
+.profile-avatar-wrap img {
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #e5e7eb;
+    background: #f8fafc;
+}
+
+.profile-photo-btn {
+    position: absolute;
+    right: 0;
+    bottom: 2px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #1e3a8a;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(30, 58, 138, 0.28);
+}
+
+#profile_image_input {
+    display: none;
+}
+
+.profile-summary-card h3 {
+    margin: 0;
+    color: #1e3a8a;
+    font-size: 1.35rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.profile-username {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+.profile-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.profile-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.profile-pill-blue {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.profile-pill-gold {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.profile-details-card {
+    padding: 24px;
+    min-width: 0;
+}
+
+.profile-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.profile-card-head h3,
+.profile-password-card h3 {
+    margin: 0;
+    color: #1e3a8a;
+    font-size: 1.08rem;
+}
+
+.profile-card-head p,
+.profile-password-card p {
+    margin: 5px 0 0;
+    color: #6b7280;
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.profile-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+.profile-form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.profile-form-grid label span {
+    color: #374151;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.profile-form-grid input,
+.profile-form-grid textarea,
+.profile-password-card input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.94rem;
+    background: #fff;
+}
+
+.profile-form-grid textarea {
+    min-height: 82px;
+    resize: vertical;
+}
+
+.profile-form-grid input:disabled,
+.profile-form-grid textarea:disabled {
+    background: #f9fafb;
+    color: #6b7280;
+    opacity: 1;
+}
+
+.profile-field-wide {
+    grid-column: 1 / -1;
+}
+
+.profile-form-msg {
+    min-height: 20px;
+    margin: 12px 0 0;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.profile-action-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.profile-btn {
+    border: none;
+    border-radius: 9px;
+    padding: 11px 16px;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+}
+
+.profile-btn[hidden] {
+    display: none;
+}
+
+.profile-btn-primary { background: #1e3a8a; }
+.profile-btn-success { background: #10b981; flex: 1; }
+.profile-btn-muted { background: #6b7280; min-width: 112px; }
+.profile-btn-danger { background: #dc2626; width: 100%; }
+
+.profile-password-card {
+    padding: 24px;
+    background: #fff7f7;
+    border-color: #fecaca;
+}
+
+.profile-password-card h3 {
+    color: #b91c1c;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-password-card p {
+    color: #7f1d1d;
+    margin-bottom: 16px;
+}
+
+.profile-password-card form {
+    display: grid;
+    gap: 12px;
+}
+
+@media (max-width: 1180px) {
+    .customer-profile-layout {
+        grid-template-columns: minmax(240px, 300px) minmax(420px, 1fr);
+    }
+
+    .profile-password-card {
+        grid-column: 2;
+    }
+}
+
+@media (max-width: 900px) {
+    .customer-profile-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-password-card {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 620px) {
+    .customer-profile-page {
+        padding-top: 8px;
+    }
+
+    .profile-details-card,
+    .profile-password-card,
+    .profile-summary-card {
+        padding: 18px;
+    }
+
+    .profile-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-action-row {
+        flex-direction: column;
+    }
+
+    .profile-btn-muted {
+        width: 100%;
+    }
+}
+
+        #profile_image_input, #profile_avatar_input { display: none; }
+    </style>
 </head>
 
 <body>
@@ -540,30 +856,50 @@ style="padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;"> 
     </div>
   </div>
 
-  <!-- Segment Members panel — shown after clicking "View" on a segment row.
-       Lists the specific buyers clustered into that segment, and lets the
-       cashier manually add loyalty points to any of them. -->
-  <div id="segmentMembersPanel" class="chart-card" style="display:none; background:#fff; border-radius:14px; box-shadow:0 4px 16px rgba(30,41,59,0.06); border:1px solid #eef0f4; padding:18px 22px; margin-bottom:16px;">
-    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px;">
-      <h3 style="color:#1e293b; margin:0; font-size:16px; font-weight:700;">
-        Buyers in <span id="segmentMembersLabel">—</span>
-      </h3>
-      <button id="segmentMembersCloseBtn" type="button" style="background:#f1f5f9; border:none; color:#475569; font-weight:700; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:13px;">Close</button>
+  <!-- Segment Members MODAL — opened after clicking "View" on a segment
+       row. Lists the specific buyers clustered into that segment, and lets
+       the cashier distribute loyalty points to any of them, as a popup
+       instead of pushing the rest of the page down as another card. -->
+  <div id="segmentMembersModalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+    <div id="segmentMembersPanel" class="chart-card" style="background:#fff; border-radius:14px; box-shadow:0 20px 50px rgba(15,23,42,0.25); border:1px solid #eef0f4; padding:22px 24px; width:100%; max-width:720px; max-height:85vh; overflow-y:auto;">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px;">
+        <h3 style="color:#1e293b; margin:0; font-size:16px; font-weight:700;">
+          Distribute Points — <span id="segmentMembersLabel">—</span>
+        </h3>
+        <button id="segmentMembersCloseBtn" type="button" style="background:#f1f5f9; border:none; color:#475569; font-weight:700; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:13px;">Close</button>
+      </div>
+      <div class="table-wrap" style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:14px;">
+          <thead>
+            <tr style="text-align:left;">
+              <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Customer</th>
+              <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Total Spent</th>
+              <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Loyalty Points</th>
+              <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Add Points</th>
+            </tr>
+          </thead>
+          <tbody id="segmentMembersBody"></tbody>
+        </table>
+      </div>
+      <p id="segmentMembersMessage" style="text-align:center; font-weight:600; margin-top:10px;"></p>
     </div>
-    <div class="table-wrap" style="overflow-x:auto;">
-      <table style="width:100%; border-collapse:collapse; font-size:14px;">
-        <thead>
-          <tr style="text-align:left;">
-            <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Customer</th>
-            <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Total Spent</th>
-            <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Loyalty Points</th>
-            <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Add Points</th>
-          </tr>
-        </thead>
-        <tbody id="segmentMembersBody"></tbody>
-      </table>
+  </div>
+
+  <!-- Per-member "Distribute Points" popup form. Opened from the Add button
+       in the table above so entering an amount and confirming happens in a
+       focused dialog instead of an inline row input. -->
+  <div id="addPointsModalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:1100; align-items:center; justify-content:center; padding:20px;">
+    <div class="chart-card" style="background:#fff; border-radius:14px; box-shadow:0 20px 50px rgba(15,23,42,0.25); border:1px solid #eef0f4; padding:24px; width:100%; max-width:360px;">
+      <h3 style="color:#1e293b; margin:0 0 4px; font-size:16px; font-weight:700;">Distribute Points</h3>
+      <p style="color:#64748b; margin:0 0 16px; font-size:13px;">Adding points for <strong id="addPointsCustomerName">—</strong></p>
+      <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Points to add</label>
+      <input type="number" id="addPointsAmountInput" placeholder="e.g. 50" style="width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px; margin-bottom:14px; box-sizing:border-box;">
+      <p id="addPointsModalMessage" style="min-height:18px; margin:0 0 12px; font-weight:600; font-size:13px;"></p>
+      <div style="display:flex; gap:10px;">
+        <button type="button" id="addPointsCancelBtn" style="flex:1; background:#f1f5f9; border:none; color:#475569; font-weight:700; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">Cancel</button>
+        <button type="button" id="addPointsConfirmBtn" style="flex:1; background:#16a34a; border:none; color:#fff; font-weight:700; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">Add Points</button>
+      </div>
     </div>
-    <p id="segmentMembersMessage" style="text-align:center; font-weight:600; margin-top:10px;"></p>
   </div>
 
   <!-- Real data charts -->
@@ -592,138 +928,90 @@ style="padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;"> 
 
 
 <!-- CASHIER PROFILE PAGE (REPLACEMENT SECTION) -->
-<div id="profile-page" class="page"
-    style="
-                padding:30px; 
-                font-family:Arial, sans-serif; 
-                /* Binalik sa default display (block) */
-            ">
-
- <div class="profile-card" style="
-   background:white; 
-        padding:30px; 
-        width:500px; /* Kailangan ng width para gumana ang margin: auto */
-   border-radius:12px; 
-        box-shadow:0 4px 15px rgba(0,0,0,0.08);
-        
-        margin: 0 auto; /* Eto ang magse-center */
-    ">
-
-    <!-- Header -->
-    <div style="text-align:center; margin-bottom:25px;">
-      <div style="position:relative; width:110px; margin:0 auto 10px auto;">
-        <img id="profile_avatar" src="<?= !empty($staff['profile_image']) ? htmlspecialchars($staff['profile_image']) : 'https://cdn-icons-png.flaticon.com/512/2922/2922510.png' ?>"
-             style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:3px solid #e5e7eb;">
-        <label for="profile_avatar_input" title="Change profile picture" style="
-              position:absolute; bottom:0; right:0;
-              background:#1e3a8a; color:white; width:32px; height:32px;
-              border-radius:50%; display:flex; align-items:center; justify-content:center;
-              cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.25); font-size:14px;">
-          <i class="fas fa-camera"></i>
-        </label>
-        <input type="file" id="profile_avatar_input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
-      </div>
-
-      <h2 style="margin:0; color:#1e3a8a;">
-        <?= htmlspecialchars($staff['first_name'] ?? '') ?> <?= htmlspecialchars($staff['last_name'] ?? '') ?>
-      </h2>
-
-      <p style="margin:3px 0; color:#4b5563;">
-        <?= htmlspecialchars($staff['middle_name'] ?? '') ?>
-      </p>
+<div id="profile-page" class="page" style="padding:30px;">
+  <div class="customer-profile-page">
+    <div class="customer-profile-header">
+        <div>
+            <h2>My Profile</h2>
+            <p>Manage your account information and login password.</p>
+        </div>
     </div>
 
-    <hr style="margin:20px 0; border-top:1px solid #e5e7eb;">
+    <div class="customer-profile-layout">
+        <aside class="profile-summary-card">
+            <div class="profile-avatar-wrap">
+                <img id="profile_avatar" src="<?= !empty($staff['profile_image']) ? htmlspecialchars($staff['profile_image']) : 'https://cdn-icons-png.flaticon.com/512/2922/2922510.png' ?>" alt="Profile photo">
+                <label for="profile_avatar_input" class="profile-photo-btn" title="Change profile picture">
+                    <i class="fas fa-camera"></i>
+                </label>
+                <input type="file" id="profile_avatar_input" accept="image/png,image/jpeg,image/webp,image/gif">
+            </div>
 
-    <!-- Account Details -->
-    <h3 style="color:#1e3a8a; margin-bottom:15px;">My Account Details</h3>
+            <h3 id="profileCardName"><?= htmlspecialchars(trim(($staff['first_name'] ?? '') . ' ' . ($staff['last_name'] ?? ''))) ?></h3>
+            <p class="profile-username">@<?= htmlspecialchars($staff['username'] ?? 'cashier') ?></p>
 
-    <table id="profileTable" style="width:100%; border-collapse:collapse; font-size:14px; color:#374151;">
-      <tr>
-        <td><strong>First Name:</strong></td>
-        <td><input type="text" id="first_name" class="p-input" value="<?= htmlspecialchars($staff['first_name'] ?? '') ?>" disabled></td>
-      </tr>
+            <div class="profile-pill-row">
+                <span class="profile-pill profile-pill-blue"><i class="fas fa-cash-register"></i>Cashier/Pharmacist</span>
+            </div>
+        </aside>
 
-      <tr style="background:#f9fafb;">
-        <td><strong>Middle Name:</strong></td>
-        <td><input type="text" id="middle_name" class="p-input" value="<?= htmlspecialchars($staff['middle_name'] ?? '') ?>" disabled></td>
-      </tr>
+        <div class="profile-details-card">
+            <div class="profile-card-head">
+                <div>
+                    <h3>Account Details</h3>
+                    <p>These values are loaded live from your staff record and saved straight to the database.</p>
+                </div>
+            </div>
 
-      <tr>
-        <td><strong>Last Name:</strong></td>
-        <td><input type="text" id="last_name" class="p-input" value="<?= htmlspecialchars($staff['last_name'] ?? '') ?>" disabled></td>
-      </tr>
+            <div class="profile-form-grid">
+                <label>
+                    <span>First Name</span>
+                    <input type="text" id="first_name" class="p-input" value="<?= htmlspecialchars($staff['first_name'] ?? '') ?>" disabled required>
+                </label>
+                <label>
+                    <span>Middle Name</span>
+                    <input type="text" id="middle_name" class="p-input" value="<?= htmlspecialchars($staff['middle_name'] ?? '') ?>" disabled>
+                </label>
+                <label>
+                    <span>Last Name</span>
+                    <input type="text" id="last_name" class="p-input" value="<?= htmlspecialchars($staff['last_name'] ?? '') ?>" disabled required>
+                </label>
+                <label>
+                    <span>Email</span>
+                    <input type="email" id="email" class="p-input" value="<?= htmlspecialchars($staff_display_email) ?>" disabled required>
+                </label>
+                <label>
+                    <span>Phone</span>
+                    <input type="text" id="phone_number" class="p-input" value="<?= htmlspecialchars($staff['phone_number'] ?? '') ?>" disabled>
+                </label>
+                <label class="profile-field-wide">
+                    <span>Address</span>
+                    <textarea id="address" class="p-input" disabled><?= htmlspecialchars($staff['address'] ?? '') ?></textarea>
+                </label>
+            </div>
 
-      <tr style="background:#f9fafb;">
-        <td><strong>Email:</strong></td>
-        <td><input type="email" id="email" class="p-input" value="<?= htmlspecialchars($staff_display_email) ?>" disabled></td>
-      </tr>
+            <p id="message" class="profile-form-msg" aria-live="polite"></p>
 
-      <tr>
-        <td><strong>Phone:</strong></td>
-        <td><input type="text" id="phone_number" class="p-input" value="<?= htmlspecialchars($staff['phone_number'] ?? '') ?>" disabled></td>
-      </tr>
+            <div class="profile-action-row">
+                <button type="button" id="profile_editBtn" class="profile-btn profile-btn-primary"><i class="fas fa-pen"></i>Edit Profile</button>
+                <button type="button" id="saveBtn" class="profile-btn profile-btn-success" hidden><i class="fas fa-check"></i>Save Changes</button>
+                <button type="button" id="profile_cancelBtn" class="profile-btn profile-btn-muted" hidden>Cancel</button>
+            </div>
+        </div>
 
-      <tr style="background:#f9fafb;">
-        <td><strong>Address:</strong></td>
-        <td><textarea id="address" class="p-input" disabled><?= htmlspecialchars($staff['address'] ?? '') ?></textarea></td>
-      </tr>
-    </table>
-
-    <!-- BUTTONS -->
-    <div style="display:flex; gap:10px;">
-      <button id="profile_editBtn" style="
-          background:#1e3a8a; color:white; padding:10px; width:100%;
-          border:none; border-radius:8px; cursor:pointer;">
-        Edit Profile
-      </button>
-
-      <button id="saveBtn" style="
-          background:#1e3a8a; color:white; padding:10px; width:100%;
-          border:none; border-radius:8px; cursor:pointer; display:none;">
-        Save Changes
-      </button>
-
-      <button id="profile_cancelBtn" style="
-          background:#6b7280; color:white; padding:10px; width:100%;
-          border:none; border-radius:8px; cursor:pointer; display:none;">
-        Cancel
-      </button>
+        <aside class="profile-password-card">
+            <h3><i class="fas fa-lock"></i>Change Password</h3>
+            <p>Separate from your account details above — this only changes your login password.</p>
+            <form id="cashierPasswordForm">
+                <input type="password" id="current_password" autocomplete="current-password" placeholder="Current password">
+                <input type="password" id="new_password" autocomplete="new-password" placeholder="New password (min 6 characters)">
+                <input type="password" id="confirm_password" autocomplete="new-password" placeholder="Confirm new password">
+                <button type="submit" id="changePasswordBtn" class="profile-btn profile-btn-danger">Update Password</button>
+                <p id="password-message" class="profile-form-msg" aria-live="polite"></p>
+            </form>
+        </aside>
     </div>
-
-    <p id="message" style="text-align:center; margin-top:10px;"></p>
-
-  </div><!-- /Account Details card -->
-
-  <div class="profile-card" style="
-        background:#fff7f7;
-        border:1px solid #fecaca;
-        padding:24px 30px;
-        width:500px;
-        margin: 24px auto 0 auto;
-        border-radius:12px;
-        box-shadow:0 4px 15px rgba(0,0,0,0.08);
-      ">
-    <h3 style="color:#b91c1c; margin-bottom:4px;"><i class="fas fa-lock" style="margin-right:8px;"></i>Change Password</h3>
-    <p style="color:#7f1d1d; font-size:13px; margin:0 0 16px;">Separate from your account details above — this only changes your login password.</p>
-    <table style="width:100%; border-collapse:collapse; font-size:14px; color:#374151; margin-bottom:12px;">
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold; width:35%;">Current:</td>
-        <td style="padding:8px 4px;"><input type="password" id="current_password" autocomplete="current-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold;">New:</td>
-        <td style="padding:8px 4px;"><input type="password" id="new_password" autocomplete="new-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold;">Confirm:</td>
-        <td style="padding:8px 4px;"><input type="password" id="confirm_password" autocomplete="new-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-    </table>
-    <button id="changePasswordBtn" type="button" style="background:#dc2626; color:white; padding:10px; width:100%; border:none; border-radius:8px; cursor:pointer; margin-bottom:10px;">Update Password</button>
-    <p id="password-message" style="text-align:center; font-weight:600;"></p>
-
-  </div><!-- /Change Password card -->
+  </div>
 </div>
 <!-- /#profile-page -->
 
@@ -2483,15 +2771,12 @@ function renderSegmentTable(variant) {
 
 function renderSegmentMemberRow(member) {
     return `
-        <tr data-customer-id="${member.customer_id}">
+        <tr data-customer-id="${member.customer_id}" data-customer-name="${member.name}">
             <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155; font-weight:600;">${member.name}</td>
             <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155;">₱${Number(member.total_spent).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155;" class="member-points-cell">${Number(member.loyalty_points).toLocaleString('en-US', {maximumFractionDigits:2})}</td>
             <td style="padding:11px 12px; border-top:1px solid #f1f5f9;">
-                <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="number" class="add-points-input" placeholder="Points" style="width:80px; padding:6px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px;">
-                    <button type="button" class="btn-add-points" style="background:#16a34a; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12.5px; font-weight:600;">Add</button>
-                </div>
+                <button type="button" class="btn-add-points" style="background:#16a34a; color:#fff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12.5px; font-weight:600;">Add Points</button>
             </td>
         </tr>
     `;
@@ -2502,11 +2787,11 @@ function showSegmentMembers(segmentIndex) {
     const label = currentSegmentVariant.labels[segmentIndex];
     const members = (currentSegmentVariant.members && currentSegmentVariant.members[segmentIndex]) || [];
 
-    const panel = document.getElementById('segmentMembersPanel');
+    const backdrop = document.getElementById('segmentMembersModalBackdrop');
     const labelEl = document.getElementById('segmentMembersLabel');
     const body = document.getElementById('segmentMembersBody');
     const msg = document.getElementById('segmentMembersMessage');
-    if (!panel || !body) return;
+    if (!backdrop || !body) return;
 
     labelEl.textContent = label;
     msg.textContent = '';
@@ -2514,54 +2799,92 @@ function showSegmentMembers(segmentIndex) {
         ? members.map(renderSegmentMemberRow).join('')
         : `<tr><td colspan="4" style="padding:14px 12px; text-align:center; color:#94a3b8;">No customers in this segment.</td></tr>`;
 
-    // Bind Add buttons for the freshly rendered rows
+    // Each row's "Add Points" button opens the popup form instead of using
+    // an inline input, so entering an amount happens in a focused dialog.
     body.querySelectorAll('.btn-add-points').forEach(btn => {
         btn.onclick = () => {
             const row = btn.closest('tr');
-            const customerId = row.dataset.customerId;
-            const input = row.querySelector('.add-points-input');
-            const points = parseFloat(input.value);
-
-            if (isNaN(points) || points === 0) {
-                msg.style.color = '#dc2626';
-                msg.textContent = 'Enter a valid points amount first.';
-                return;
-            }
-
-            btn.disabled = true;
-            fetch('add_loyalty_points.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ customer_id: customerId, points: points })
-            })
-            .then(res => res.json())
-            .then(data => {
-                btn.disabled = false;
-                if (data.success) {
-                    row.querySelector('.member-points-cell').textContent =
-                        Number(data.new_balance).toLocaleString('en-US', { maximumFractionDigits: 2 });
-                    input.value = '';
-                    msg.style.color = '#16a34a';
-                    msg.textContent = `Points updated for ${row.cells[0].textContent}.`;
-                } else {
-                    msg.style.color = '#dc2626';
-                    msg.textContent = data.message || 'Failed to update points.';
-                }
-            })
-            .catch(() => {
-                btn.disabled = false;
-                msg.style.color = '#dc2626';
-                msg.textContent = 'Network error while updating points.';
-            });
+            openAddPointsModal(row.dataset.customerId, row.dataset.customerName, row);
         };
     });
 
-    panel.style.display = 'block';
-    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    backdrop.style.display = 'flex';
 }
 
 document.getElementById('segmentMembersCloseBtn')?.addEventListener('click', () => {
-    document.getElementById('segmentMembersPanel').style.display = 'none';
+    document.getElementById('segmentMembersModalBackdrop').style.display = 'none';
+});
+// Click on the dark overlay (outside the card) also closes it
+document.getElementById('segmentMembersModalBackdrop')?.addEventListener('click', (e) => {
+    if (e.target.id === 'segmentMembersModalBackdrop') {
+        e.currentTarget.style.display = 'none';
+    }
+});
+
+// ---- Distribute Points popup form ----
+let addPointsTargetRow = null;
+
+function openAddPointsModal(customerId, customerName, row) {
+    addPointsTargetRow = row;
+    document.getElementById('addPointsCustomerName').textContent = customerName;
+    const input = document.getElementById('addPointsAmountInput');
+    input.value = '';
+    document.getElementById('addPointsModalMessage').textContent = '';
+    document.getElementById('addPointsConfirmBtn').dataset.customerId = customerId;
+    document.getElementById('addPointsModalBackdrop').style.display = 'flex';
+    input.focus();
+}
+
+function closeAddPointsModal() {
+    document.getElementById('addPointsModalBackdrop').style.display = 'none';
+    addPointsTargetRow = null;
+}
+
+document.getElementById('addPointsCancelBtn')?.addEventListener('click', closeAddPointsModal);
+document.getElementById('addPointsModalBackdrop')?.addEventListener('click', (e) => {
+    if (e.target.id === 'addPointsModalBackdrop') closeAddPointsModal();
+});
+
+document.getElementById('addPointsConfirmBtn')?.addEventListener('click', function () {
+    const confirmBtn = this;
+    const customerId = confirmBtn.dataset.customerId;
+    const modalMsg = document.getElementById('addPointsModalMessage');
+    const points = parseFloat(document.getElementById('addPointsAmountInput').value);
+
+    if (isNaN(points) || points === 0) {
+        modalMsg.style.color = '#dc2626';
+        modalMsg.textContent = 'Enter a valid points amount first.';
+        return;
+    }
+
+    confirmBtn.disabled = true;
+    fetch('add_loyalty_points.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: customerId, points: points })
+    })
+    .then(res => res.json())
+    .then(data => {
+        confirmBtn.disabled = false;
+        if (data.success) {
+            if (addPointsTargetRow) {
+                addPointsTargetRow.querySelector('.member-points-cell').textContent =
+                    Number(data.new_balance).toLocaleString('en-US', { maximumFractionDigits: 2 });
+            }
+            const segMsg = document.getElementById('segmentMembersMessage');
+            segMsg.style.color = '#16a34a';
+            segMsg.textContent = `Points updated for ${document.getElementById('addPointsCustomerName').textContent}.`;
+            closeAddPointsModal();
+        } else {
+            modalMsg.style.color = '#dc2626';
+            modalMsg.textContent = data.message || 'Failed to update points.';
+        }
+    })
+    .catch(() => {
+        confirmBtn.disabled = false;
+        modalMsg.style.color = '#dc2626';
+        modalMsg.textContent = 'Network error while updating points.';
+    });
 });
 
 function applySegmentCount(n) {
@@ -2585,33 +2908,38 @@ function applySegmentCount(n) {
   // without reloading the whole page (which used to kick the user back
   // to the Dashboard tab).
   const profileOriginal = {};
-  document.querySelectorAll(".p-input").forEach(i => {
+  document.querySelectorAll("#profile-page .p-input").forEach(i => {
       profileOriginal[i.id] = i.value;
   });
 
+  const cEditBtn = document.getElementById("profile_editBtn");
+  const cSaveBtn = document.getElementById("saveBtn");
+  const cCancelBtn = document.getElementById("profile_cancelBtn");
+  const cMsg = document.getElementById("message");
+
   // ENABLE EDIT MODE
-  document.getElementById("profile_editBtn").onclick = () => {
-      document.querySelectorAll(".p-input").forEach(i => i.disabled = false);
-      document.getElementById("saveBtn").style.display = "block";
-      document.getElementById("profile_cancelBtn").style.display = "block";
-      document.getElementById("profile_editBtn").style.display = "none";
-      document.getElementById("message").innerHTML = "";
+  cEditBtn.onclick = () => {
+      document.querySelectorAll("#profile-page .p-input").forEach(i => i.disabled = false);
+      cSaveBtn.hidden = false;
+      cCancelBtn.hidden = false;
+      cEditBtn.hidden = true;
+      cMsg.textContent = "";
   };
 
   // CANCEL EDIT (stay on the Profile page, just restore old values)
-  document.getElementById("profile_cancelBtn").onclick = () => {
-      document.querySelectorAll(".p-input").forEach(i => {
+  cCancelBtn.onclick = () => {
+      document.querySelectorAll("#profile-page .p-input").forEach(i => {
           i.value = profileOriginal[i.id];
           i.disabled = true;
       });
-      document.getElementById("saveBtn").style.display = "none";
-      document.getElementById("profile_cancelBtn").style.display = "none";
-      document.getElementById("profile_editBtn").style.display = "block";
-      document.getElementById("message").innerHTML = "";
+      cSaveBtn.hidden = true;
+      cCancelBtn.hidden = true;
+      cEditBtn.hidden = false;
+      cMsg.textContent = "";
   };
 
   // SAVE PROFILE (AJAX) — stays on the Profile page after saving
-  document.getElementById("saveBtn").onclick = () => {
+  cSaveBtn.onclick = () => {
 
       const data = {
           first_name: document.getElementById("first_name").value.trim(),
@@ -2622,6 +2950,9 @@ function applySegmentCount(n) {
           address: document.getElementById("address").value.trim()
       };
 
+      cMsg.style.color = "#6b7280";
+      cMsg.textContent = "Saving...";
+
       fetch("update_profile_cashier.php", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2629,46 +2960,38 @@ function applySegmentCount(n) {
       })
       .then(res => res.json())
       .then(response => {
-          const msg = document.getElementById("message");
           if (response.success) {
-              msg.style.color = "green";
-              msg.innerHTML = "Profile updated successfully!";
+              cMsg.style.color = "#16a34a";
+              cMsg.textContent = response.message || "Profile updated successfully!";
 
               // Update the snapshot with the newly saved values and lock
               // the fields again, WITHOUT reloading the page.
               Object.keys(data).forEach(key => { profileOriginal[key] = data[key]; });
-              document.querySelectorAll(".p-input").forEach(i => i.disabled = true);
-              document.getElementById("saveBtn").style.display = "none";
-              document.getElementById("profile_cancelBtn").style.display = "none";
-              document.getElementById("profile_editBtn").style.display = "block";
+              document.querySelectorAll("#profile-page .p-input").forEach(i => i.disabled = true);
+              cSaveBtn.hidden = true;
+              cCancelBtn.hidden = true;
+              cEditBtn.hidden = false;
 
-              // Refresh the name shown in the header/card without a reload
-              const nameHeader = document.querySelector("#profile-page h2");
-              if (nameHeader) {
-                  nameHeader.textContent = `${data.first_name} ${data.last_name}`;
-              }
-              const middleNamePara = document.querySelector("#profile-page .profile-card > div p");
-              if (middleNamePara) {
-                  middleNamePara.textContent = data.middle_name;
-              }
+              // Refresh the name shown in the summary card without a reload
+              const nameHeader = document.getElementById("profileCardName");
+              if (nameHeader) nameHeader.textContent = `${data.first_name} ${data.last_name}`.trim();
 
               const headerWelcome = document.getElementById("headerWelcomeName");
               if (headerWelcome) headerWelcome.textContent = `Welcome, ${data.first_name}`;
           } else {
-              msg.style.color = "red";
-              msg.innerHTML = response.message || "Update failed.";
+              cMsg.style.color = "#e74c3c";
+              cMsg.textContent = response.message || "Update failed.";
           }
       })
       .catch(err => {
-          const msg = document.getElementById("message");
-          msg.style.color = "red";
-          msg.innerHTML = "Request error.";
+          cMsg.style.color = "#e74c3c";
+          cMsg.textContent = "Request error.";
           console.error("AJAX error:", err);
       });
   };
 
-  // PROFILE PICTURE UPLOAD
-  document.getElementById("changePasswordBtn")?.addEventListener("click", () => {
+  document.getElementById("cashierPasswordForm").addEventListener("submit", (e) => {
+      e.preventDefault();
       const pwMsg = document.getElementById("password-message");
       fetch("change_password.php", {
           method: "POST",
@@ -2681,13 +3004,13 @@ function applySegmentCount(n) {
       })
       .then(res => res.json())
       .then(r => {
-          pwMsg.style.color = r.success ? "green" : "red";
+          pwMsg.style.color = r.success ? "#16a34a" : "#e74c3c";
           pwMsg.textContent = r.message || (r.success ? "Password updated." : "Failed.");
           if (r.success) {
               ["current_password","new_password","confirm_password"].forEach(id => document.getElementById(id).value = "");
           }
       })
-      .catch(() => { pwMsg.style.color = "red"; pwMsg.textContent = "Request error."; });
+      .catch(() => { pwMsg.style.color = "#e74c3c"; pwMsg.textContent = "Request error."; });
   });
 
   document.getElementById("profile_avatar_input").addEventListener("change", function () {
@@ -2703,18 +3026,18 @@ function applySegmentCount(n) {
               const msg = document.getElementById("message");
               if (response.success) {
                   document.getElementById("profile_avatar").src = response.path + "?t=" + Date.now();
-                  msg.style.color = "green";
-                  msg.innerHTML = "Profile picture updated!";
+                  msg.style.color = "#16a34a";
+                  msg.textContent = "Profile picture updated!";
               } else {
-                  msg.style.color = "red";
-                  msg.innerHTML = response.message || "Failed to upload picture.";
+                  msg.style.color = "#e74c3c";
+                  msg.textContent = response.message || "Failed to upload picture.";
               }
           })
           .catch(err => {
               console.error("Avatar upload error:", err);
               const msg = document.getElementById("message");
-              msg.style.color = "red";
-              msg.innerHTML = "Upload error.";
+              msg.style.color = "#e74c3c";
+              msg.textContent = "Upload error.";
           });
   });
   

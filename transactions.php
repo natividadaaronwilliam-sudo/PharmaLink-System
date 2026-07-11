@@ -113,14 +113,20 @@ try {
     $lockStmt->close();
 
     // ---- 2. Insert the sale header ----
+    // NOTE: the `sales` table's real column names are `discount_amount` and
+    // `tax_amount` (not `discount_total`/`tax_total`), and `transaction_id`
+    // is NOT NULL with no default — both of these were missing/wrong here,
+    // which is why every checkout failed with a SQL error.
+    $transaction_id = 'TXN-' . date('YmdHis') . '-' . random_int(1000, 9999);
+
     $saleStmt = $conn->prepare(
         "INSERT INTO sales
-            (customer_id, user_id, subtotal, discount_total, tax_total, total_amount, cash_received, change_amount, payment_method, status, date_created)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())"
+            (transaction_id, customer_id, user_id, subtotal, discount_amount, tax_amount, total_amount, cash_received, change_amount, payment_method, status, date_created)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())"
     );
     $saleStmt->bind_param(
-        'iidddddss',
-        $customer_id, $user_id, $subtotal, $discount_total, $tax_total, $total_amount, $cash_received, $change_amount, $payment_method
+        'siidddddds',
+        $transaction_id, $customer_id, $user_id, $subtotal, $discount_total, $tax_total, $total_amount, $cash_received, $change_amount, $payment_method
     );
     if (!$saleStmt->execute()) {
         throw new Exception('Failed to save sale: ' . $saleStmt->error);
@@ -131,7 +137,7 @@ try {
     // ---- 3. Insert each line item + decrement real stock ----
     $itemStmt = $conn->prepare(
         "INSERT INTO sales_items
-            (sale_id, drug_id, lot_inventory_id, quantity, price, subtotal, discount_amount, promo_name, vat_exempt)
+            (sale_id, drug_id, lot_id, quantity, price, subtotal, discount_amount, promo_name, vat_exempt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     $stockStmt = $conn->prepare(
@@ -186,7 +192,7 @@ try {
     echo json_encode([
         'status'         => 'success',
         'sale_id'        => $sale_id,
-        'transaction_id' => $sale_id,
+        'transaction_id' => $transaction_id,
         'message'        => 'Transaction saved successfully.',
     ]);
 

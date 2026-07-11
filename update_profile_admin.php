@@ -35,9 +35,30 @@ $stmt->bind_param('ssssssi', $first_name, $middle_name, $last_name, $email, $pho
 
 try {
     $stmt->execute();
+    $stmt->close();
+
+    // A MySQL UPDATE that matches zero rows is NOT an error — it just quietly
+    // changes nothing. If we don't check this, a broken/mismatched user_id
+    // (e.g. no staff_info row for this account) looks exactly like a
+    // successful save from the frontend's point of view: no error, but the
+    // page reverts to the old values on refresh because nothing was ever
+    // actually written.
+    $checkStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM staff_info WHERE user_id = ?");
+    $checkStmt->bind_param('i', $user_id);
+    $checkStmt->execute();
+    $exists = (int) $checkStmt->get_result()->fetch_assoc()['cnt'];
+    $checkStmt->close();
+
+    if ($exists === 0) {
+        echo json_encode([
+            'success' => false,
+            'message' => "No staff profile record found for this account (user_id={$user_id}). Nothing was saved — check that a matching row exists in staff_info.",
+        ]);
+        exit;
+    }
+
     $_SESSION['user_first_name'] = $first_name;
     echo json_encode(['success' => true, 'message' => 'Profile updated successfully.']);
 } catch (mysqli_sql_exception $e) {
     echo json_encode(['success' => false, 'message' => 'Failed to update profile: ' . $e->getMessage()]);
 }
-$stmt->close();
