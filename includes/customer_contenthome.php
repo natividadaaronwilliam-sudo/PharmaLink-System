@@ -26,9 +26,15 @@ if ($customer_id) {
     $loyalty_points = $pts['loyalty_points'] ?? 0;
 }
 ?>
-<div class="dashboard-header" style="margin-bottom:20px;">
-    <h2 style="color:#1e3a8a;">Welcome back, <?= htmlspecialchars($_SESSION['user_first_name'] ?? 'Customer') ?>!</h2>
-    <p style="color:#555;">Here's a quick look at your PharmaLink account.</p>
+<div class="dashboard-header" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:20px;">
+    <div>
+        <h2 style="color:#1e3a8a;">Welcome back, <?= htmlspecialchars($_SESSION['user_first_name'] ?? 'Customer') ?>!</h2>
+        <p style="color:#555;">Here's a quick look at your PharmaLink account.</p>
+    </div>
+    <div id="dashboard-datetime" style="background:#fff; padding:10px 16px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.06); text-align:right; min-width:220px;">
+        <div style="font-size:13px; color:#6b7280;">Server Date &amp; Time</div>
+        <div id="live-clock" style="font-size:15px; font-weight:600; color:#1e3a8a;"><?= date('l, M j, Y — g:i:s A') ?></div>
+    </div>
 </div>
 
 <div class="dashboard-cards" style="display:flex; flex-wrap:wrap; gap:20px; margin-bottom:28px;">

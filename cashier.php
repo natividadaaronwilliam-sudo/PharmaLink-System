@@ -569,9 +569,17 @@ $staff_display_email = !empty($staff['email']) ? $staff['email'] : ($staff['user
 
     
   <div id="dashboard-page" class="page active">
-        <h2 style="color:#1e3a8a;">Dashboard Overview</h2>
-        <p class="subtitle">Monitor daily sales, transactions, and inventory status.</p>
-        
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:12px;">
+            <div>
+                <h2 style="color:#1e3a8a;">Dashboard Overview</h2>
+                <p class="subtitle">Monitor daily sales, transactions, and inventory status.</p>
+            </div>
+            <div id="dashboard-datetime" style="background:#fff; padding:10px 16px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.06); text-align:right; min-width:220px;">
+                <div style="font-size:13px; color:#6b7280;">Server Date &amp; Time</div>
+                <div id="live-clock" style="font-size:15px; font-weight:600; color:#1e3a8a;"><?= date('l, M j, Y — g:i:s A') ?></div>
+            </div>
+        </div>
+
         <div class="date-filter-container" style="display: flex; gap: 15px; margin-top: 20px; align-items: center;">
             <label for="startDate">Start Date:</label>
             <input type="date" id="startDate" name="startDate" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
@@ -856,53 +864,7 @@ style="padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;"> 
     </div>
   </div>
 
-  <!-- Segment Members MODAL — opened after clicking "View" on a segment
-       row. Lists the specific buyers clustered into that segment, and lets
-       the cashier distribute loyalty points to any of them, as a popup
-       instead of pushing the rest of the page down as another card. -->
-  <div id="segmentMembersModalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:1000; align-items:center; justify-content:center; padding:20px;">
-    <div id="segmentMembersPanel" class="chart-card" style="background:#fff; border-radius:14px; box-shadow:0 20px 50px rgba(15,23,42,0.25); border:1px solid #eef0f4; padding:22px 24px; width:100%; max-width:720px; max-height:85vh; overflow-y:auto;">
-      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px;">
-        <h3 style="color:#1e293b; margin:0; font-size:16px; font-weight:700;">
-          Distribute Points — <span id="segmentMembersLabel">—</span>
-        </h3>
-        <button id="segmentMembersCloseBtn" type="button" style="background:#f1f5f9; border:none; color:#475569; font-weight:700; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:13px;">Close</button>
-      </div>
-      <div class="table-wrap" style="overflow-x:auto;">
-        <table style="width:100%; border-collapse:collapse; font-size:14px;">
-          <thead>
-            <tr style="text-align:left;">
-              <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Customer</th>
-              <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Total Spent</th>
-              <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Loyalty Points</th>
-              <th style="padding:10px 12px; color:#94a3b8; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9;">Add Points</th>
-            </tr>
-          </thead>
-          <tbody id="segmentMembersBody"></tbody>
-        </table>
-      </div>
-      <p id="segmentMembersMessage" style="text-align:center; font-weight:600; margin-top:10px;"></p>
-    </div>
-  </div>
 
-  <!-- Per-member "Distribute Points" popup form. Opened from the Add button
-       in the table above so entering an amount and confirming happens in a
-       focused dialog instead of an inline row input. -->
-  <div id="addPointsModalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:1100; align-items:center; justify-content:center; padding:20px;">
-    <div class="chart-card" style="background:#fff; border-radius:14px; box-shadow:0 20px 50px rgba(15,23,42,0.25); border:1px solid #eef0f4; padding:24px; width:100%; max-width:360px;">
-      <h3 style="color:#1e293b; margin:0 0 4px; font-size:16px; font-weight:700;">Distribute Points</h3>
-      <p style="color:#64748b; margin:0 0 16px; font-size:13px;">Adding points for <strong id="addPointsCustomerName">—</strong></p>
-      <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Points to add</label>
-      <input type="number" id="addPointsAmountInput" placeholder="e.g. 50" style="width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px; margin-bottom:14px; box-sizing:border-box;">
-      <p id="addPointsModalMessage" style="min-height:18px; margin:0 0 12px; font-weight:600; font-size:13px;"></p>
-      <div style="display:flex; gap:10px;">
-        <button type="button" id="addPointsCancelBtn" style="flex:1; background:#f1f5f9; border:none; color:#475569; font-weight:700; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">Cancel</button>
-        <button type="button" id="addPointsConfirmBtn" style="flex:1; background:#16a34a; border:none; color:#fff; font-weight:700; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">Add Points</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Real data charts -->
   <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
     <div class="chart-card" style="background:#fff; border-radius:14px; box-shadow:0 4px 16px rgba(30,41,59,0.06); border:1px solid #eef0f4; padding:16px 18px;">
       <h3 style="color:#1e293b; margin:0 0 10px; font-size:14.5px; font-weight:700;">Customer Type Distribution</h3>
@@ -2769,91 +2731,56 @@ function renderSegmentTable(variant) {
     });
 }
 
-function renderSegmentMemberRow(member) {
-    return `
-        <tr data-customer-id="${member.customer_id}" data-customer-name="${member.name}">
-            <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155; font-weight:600;">${member.name}</td>
-            <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155;">₱${Number(member.total_spent).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td style="padding:11px 12px; border-top:1px solid #f1f5f9; color:#334155;" class="member-points-cell">${Number(member.loyalty_points).toLocaleString('en-US', {maximumFractionDigits:2})}</td>
-            <td style="padding:11px 12px; border-top:1px solid #f1f5f9;">
-                <button type="button" class="btn-add-points" style="background:#16a34a; color:#fff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12.5px; font-weight:600;">Add Points</button>
-            </td>
-        </tr>
-    `;
+function populateAddPointsCustomerOptions(members) {
+    const select = document.getElementById('addPointsCustomerSelect');
+    if (!members.length) {
+        select.innerHTML = `<option value="">No customers in this segment</option>`;
+        select.disabled = true;
+        return;
+    }
+    select.disabled = false;
+    select.innerHTML = members.map(m =>
+        `<option value="${m.customer_id}" data-points="${m.loyalty_points}">${m.name} — ${Number(m.loyalty_points).toLocaleString('en-US', {maximumFractionDigits:2})} pts</option>`
+    ).join('');
 }
 
+// Clicking "View" on a segment row opens a single popup form directly —
+// pick the customer from a dropdown (pre-filtered to that segment) and
+// enter points to add, all in one step, instead of first showing a
+// separate member-list card/modal.
 function showSegmentMembers(segmentIndex) {
     if (!currentSegmentVariant) return;
     const label = currentSegmentVariant.labels[segmentIndex];
     const members = (currentSegmentVariant.members && currentSegmentVariant.members[segmentIndex]) || [];
 
-    const backdrop = document.getElementById('segmentMembersModalBackdrop');
-    const labelEl = document.getElementById('segmentMembersLabel');
-    const body = document.getElementById('segmentMembersBody');
-    const msg = document.getElementById('segmentMembersMessage');
-    if (!backdrop || !body) return;
-
-    labelEl.textContent = label;
-    msg.textContent = '';
-    body.innerHTML = members.length
-        ? members.map(renderSegmentMemberRow).join('')
-        : `<tr><td colspan="4" style="padding:14px 12px; text-align:center; color:#94a3b8;">No customers in this segment.</td></tr>`;
-
-    // Each row's "Add Points" button opens the popup form instead of using
-    // an inline input, so entering an amount happens in a focused dialog.
-    body.querySelectorAll('.btn-add-points').forEach(btn => {
-        btn.onclick = () => {
-            const row = btn.closest('tr');
-            openAddPointsModal(row.dataset.customerId, row.dataset.customerName, row);
-        };
-    });
-
-    backdrop.style.display = 'flex';
-}
-
-document.getElementById('segmentMembersCloseBtn')?.addEventListener('click', () => {
-    document.getElementById('segmentMembersModalBackdrop').style.display = 'none';
-});
-// Click on the dark overlay (outside the card) also closes it
-document.getElementById('segmentMembersModalBackdrop')?.addEventListener('click', (e) => {
-    if (e.target.id === 'segmentMembersModalBackdrop') {
-        e.currentTarget.style.display = 'none';
-    }
-});
-
-// ---- Distribute Points popup form ----
-let addPointsTargetRow = null;
-
-function openAddPointsModal(customerId, customerName, row) {
-    addPointsTargetRow = row;
-    document.getElementById('addPointsCustomerName').textContent = customerName;
-    const input = document.getElementById('addPointsAmountInput');
-    input.value = '';
+    document.getElementById('addPointsSegmentLabel').textContent = label;
+    populateAddPointsCustomerOptions(members);
+    document.getElementById('addPointsAmountInput').value = '';
     document.getElementById('addPointsModalMessage').textContent = '';
-    document.getElementById('addPointsConfirmBtn').dataset.customerId = customerId;
     document.getElementById('addPointsModalBackdrop').style.display = 'flex';
-    input.focus();
+
+    const select = document.getElementById('addPointsCustomerSelect');
+    if (!select.disabled) select.focus();
 }
 
 function closeAddPointsModal() {
     document.getElementById('addPointsModalBackdrop').style.display = 'none';
-    addPointsTargetRow = null;
 }
 
-document.getElementById('addPointsCancelBtn')?.addEventListener('click', closeAddPointsModal);
-document.getElementById('addPointsModalBackdrop')?.addEventListener('click', (e) => {
-    if (e.target.id === 'addPointsModalBackdrop') closeAddPointsModal();
-});
-
-document.getElementById('addPointsConfirmBtn')?.addEventListener('click', function () {
-    const confirmBtn = this;
-    const customerId = confirmBtn.dataset.customerId;
+function submitAddPoints(confirmBtn) {
+    const select = document.getElementById('addPointsCustomerSelect');
+    const customerId = select.value;
     const modalMsg = document.getElementById('addPointsModalMessage');
     const points = parseFloat(document.getElementById('addPointsAmountInput').value);
 
+    if (!customerId) {
+        modalMsg.style.color = '#dc2626';
+        modalMsg.textContent = 'Select a customer first.';
+        return;
+    }
     if (isNaN(points) || points === 0) {
         modalMsg.style.color = '#dc2626';
-        modalMsg.textContent = 'Enter a valid points amount first.';
+        modalMsg.textContent = 'Enter a valid points amount.';
         return;
     }
 
@@ -2867,14 +2794,25 @@ document.getElementById('addPointsConfirmBtn')?.addEventListener('click', functi
     .then(data => {
         confirmBtn.disabled = false;
         if (data.success) {
-            if (addPointsTargetRow) {
-                addPointsTargetRow.querySelector('.member-points-cell').textContent =
-                    Number(data.new_balance).toLocaleString('en-US', { maximumFractionDigits: 2 });
+            const customerName = select.options[select.selectedIndex].textContent.split(' — ')[0];
+            modalMsg.style.color = '#16a34a';
+            modalMsg.textContent = `Added ${points} points for ${customerName}. New balance: ${Number(data.new_balance).toLocaleString('en-US', {maximumFractionDigits:2})}.`;
+
+            // Update the dropdown option's shown balance immediately, so the
+            // cashier sees the real, current balance without reloading.
+            select.options[select.selectedIndex].dataset.points = data.new_balance;
+            select.options[select.selectedIndex].textContent = `${customerName} — ${Number(data.new_balance).toLocaleString('en-US', {maximumFractionDigits:2})} pts`;
+            document.getElementById('addPointsAmountInput').value = '';
+
+            // Also update the underlying in-memory segment data (not just the
+            // dropdown label) so the balance stays correct if this same
+            // segment's popup is reopened later without a full page reload.
+            if (currentSegmentVariant && currentSegmentVariant.members) {
+                for (const bucket of currentSegmentVariant.members) {
+                    const member = bucket.find(m => String(m.customer_id) === String(customerId));
+                    if (member) { member.loyalty_points = data.new_balance; break; }
+                }
             }
-            const segMsg = document.getElementById('segmentMembersMessage');
-            segMsg.style.color = '#16a34a';
-            segMsg.textContent = `Points updated for ${document.getElementById('addPointsCustomerName').textContent}.`;
-            closeAddPointsModal();
         } else {
             modalMsg.style.color = '#dc2626';
             modalMsg.textContent = data.message || 'Failed to update points.';
@@ -2885,6 +2823,29 @@ document.getElementById('addPointsConfirmBtn')?.addEventListener('click', functi
         modalMsg.style.color = '#dc2626';
         modalMsg.textContent = 'Network error while updating points.';
     });
+}
+
+// Event DELEGATION instead of binding directly to the buttons by ID.
+// A single listener on document.body exists the instant the page starts
+// parsing — it doesn't matter whether the modal's own HTML (at the very
+// bottom of <body>) has been parsed yet, or whether this script runs
+// before or after DOMContentLoaded. Every click anywhere on the page
+// bubbles up to this one listener, which then checks what was actually
+// clicked. This is deliberately more robust than binding-by-ID+timing,
+// which is what caused the Close/X buttons to silently do nothing before.
+document.body.addEventListener('click', function (e) {
+    if (e.target.closest('#addPointsCancelBtn') || e.target.closest('#addPointsCancelBtn2')) {
+        closeAddPointsModal();
+        return;
+    }
+    if (e.target.id === 'addPointsModalBackdrop') {
+        closeAddPointsModal();
+        return;
+    }
+    const confirmBtn = e.target.closest('#addPointsConfirmBtn');
+    if (confirmBtn) {
+        submitAddPoints(confirmBtn);
+    }
 });
 
 function applySegmentCount(n) {
@@ -2896,10 +2857,10 @@ function applySegmentCount(n) {
     kmeansPieChart.update();
     renderSegmentLegend(variant);
     renderSegmentTable(variant);
-    // Hide the members panel when the segment count changes since bucket
+    // Close the Add Points popup when the segment count changes since bucket
     // indices no longer line up with whatever was being viewed before.
-    const panel = document.getElementById('segmentMembersPanel');
-    if (panel) panel.style.display = 'none';
+    const backdrop = document.getElementById('addPointsModalBackdrop');
+    if (backdrop) backdrop.style.display = 'none';
 }
 
 // profile
@@ -2964,9 +2925,21 @@ function applySegmentCount(n) {
               cMsg.style.color = "#16a34a";
               cMsg.textContent = response.message || "Profile updated successfully!";
 
-              // Update the snapshot with the newly saved values and lock
-              // the fields again, WITHOUT reloading the page.
-              Object.keys(data).forEach(key => { profileOriginal[key] = data[key]; });
+              // Use what the server actually verified was persisted in the DB
+              // (not just what we typed) as the new source of truth.
+              const saved = {
+                  first_name: response.first_name ?? data.first_name,
+                  middle_name: response.middle_name ?? data.middle_name,
+                  last_name: response.last_name ?? data.last_name,
+                  email: response.email ?? data.email,
+                  phone_number: response.phone_number ?? data.phone_number,
+                  address: response.address ?? data.address
+              };
+              Object.keys(saved).forEach(key => {
+                  profileOriginal[key] = saved[key];
+                  const field = document.getElementById(key);
+                  if (field) field.value = saved[key];
+              });
               document.querySelectorAll("#profile-page .p-input").forEach(i => i.disabled = true);
               cSaveBtn.hidden = true;
               cCancelBtn.hidden = true;
@@ -2974,10 +2947,10 @@ function applySegmentCount(n) {
 
               // Refresh the name shown in the summary card without a reload
               const nameHeader = document.getElementById("profileCardName");
-              if (nameHeader) nameHeader.textContent = `${data.first_name} ${data.last_name}`.trim();
+              if (nameHeader) nameHeader.textContent = `${saved.first_name} ${saved.last_name}`.trim();
 
               const headerWelcome = document.getElementById("headerWelcomeName");
-              if (headerWelcome) headerWelcome.textContent = `Welcome, ${data.first_name}`;
+              if (headerWelcome) headerWelcome.textContent = `Welcome, ${saved.first_name}`;
           } else {
               cMsg.style.color = "#e74c3c";
               cMsg.textContent = response.message || "Update failed.";
@@ -3047,5 +3020,34 @@ function applySegmentCount(n) {
 
 
 <script src="assets/theme.js"></script>
+<!-- Distribute Points popup form — opened directly by clicking "View" on a
+     segment row (Customer Segmentation page). Pick the customer (dropdown
+     pre-filtered to that segment) and enter points to add, all in one
+     centered popup, instead of first showing a separate member-list panel.
+     Placed as a direct child of <body> (not nested inside the Customer
+     Segmentation .page div) so its position:fixed centering always works
+     and its z-index reliably sits above the fixed sidebar (z-index:1000). -->
+<div id="addPointsModalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9000; align-items:center; justify-content:center; padding:20px;">
+    <div class="chart-card" style="background:#fff; border-radius:14px; box-shadow:0 20px 50px rgba(15,23,42,0.25); border:1px solid #eef0f4; padding:24px; width:100%; max-width:400px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:4px;">
+        <h3 style="color:#1e293b; margin:0; font-size:16px; font-weight:700;">Distribute Points</h3>
+        <button type="button" id="addPointsCancelBtn" aria-label="Close" style="background:#f1f5f9; border:none; color:#475569; font-weight:700; width:26px; height:26px; border-radius:6px; cursor:pointer; font-size:14px; line-height:1;">✕</button>
+      </div>
+      <p style="color:#64748b; margin:0 0 16px; font-size:13px;">Segment: <strong id="addPointsSegmentLabel">—</strong></p>
+
+      <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Customer</label>
+      <select id="addPointsCustomerSelect" style="width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px; margin-bottom:14px; box-sizing:border-box; background:#fff;"></select>
+
+      <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:6px;">Points to add</label>
+      <input type="number" id="addPointsAmountInput" placeholder="e.g. 50" style="width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px; margin-bottom:14px; box-sizing:border-box;">
+
+      <p id="addPointsModalMessage" style="min-height:18px; margin:0 0 12px; font-weight:600; font-size:13px;"></p>
+      <div style="display:flex; gap:10px;">
+        <button type="button" id="addPointsCancelBtn2" style="flex:1; background:#f1f5f9; border:none; color:#475569; font-weight:700; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">Close</button>
+        <button type="button" id="addPointsConfirmBtn" style="flex:1; background:#16a34a; border:none; color:#fff; font-weight:700; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">Add Points</button>
+      </div>
+    </div>
+</div>
+
 </body>
 </html>

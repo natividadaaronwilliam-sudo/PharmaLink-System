@@ -278,8 +278,9 @@ $conn->close();
 
 .customer-profile-header h2 {
     margin: 0;
-    color: #1e3a8a;
-    font-size: 1.75rem;
+    color: var(--ph-blue-900, #1e3a8a);
+    font-size: 1.7rem;
+    font-weight: 700;
     line-height: 1.2;
 }
 
@@ -299,15 +300,16 @@ $conn->close();
 .profile-summary-card,
 .profile-details-card,
 .profile-password-card {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    background: var(--ph-surface, #fff);
+    border: 1px solid var(--ph-border-soft, #eef0f6);
+    border-radius: var(--ph-radius-lg, 18px);
+    box-shadow: var(--ph-shadow-sm, 0 2px 8px rgba(23, 26, 43, 0.07));
 }
 
 .profile-summary-card {
     padding: 28px 22px;
     text-align: center;
+
 }
 
 .profile-avatar-wrap {
@@ -900,17 +902,17 @@ $conn->close();
                 </tr>
             </thead>
             <tbody id="staff-table-body">
-                <?php foreach ($allStaff as $staff): 
-                    $fullName = trim($staff['first_name'] . ' ' . $staff['middle_name'] . ' ' . $staff['last_name']);
+                <?php foreach ($allStaff as $staffRow): 
+                    $fullName = trim($staffRow['first_name'] . ' ' . $staffRow['middle_name'] . ' ' . $staffRow['last_name']);
                 ?>
-                <tr data-id="<?= $staff['user_id'] ?>" data-role="<?= $staff['role_name'] ?>" style="border-top:1px solid #e5e7eb;">
+                <tr data-id="<?= $staffRow['user_id'] ?>" data-role="<?= $staffRow['role_name'] ?>" style="border-top:1px solid #e5e7eb;">
                     <td style="padding: 12px 16px;"><?= htmlspecialchars($fullName) ?></td>
-                    <td style="padding: 12px 16px;"><?= htmlspecialchars($staff['role_name']) ?></td>
-                    <td style="padding: 12px 16px;"><?= htmlspecialchars($staff['email']) ?></td> 
-                    <td style="padding: 12px 16px;"><?= htmlspecialchars($staff['phone_number']) ?></td>
+                    <td style="padding: 12px 16px;"><?= htmlspecialchars($staffRow['role_name']) ?></td>
+                    <td style="padding: 12px 16px;"><?= htmlspecialchars($staffRow['email']) ?></td> 
+                    <td style="padding: 12px 16px;"><?= htmlspecialchars($staffRow['phone_number']) ?></td>
                     <td class="action-btn-group" style="padding: 12px 16px; display:flex; gap:8px;">
-                        <button class="add-btn edit-staff-btn" data-id="<?= $staff['user_id'] ?>" style="background: #1e90ff; color:#fff; padding: 6px 12px; border:none; border-radius:4px; cursor:pointer;">Edit</button>
-                        <button class="add-btn delete-staff-btn" data-id="<?= $staff['user_id'] ?>" style="background: #e63946; color:#fff; padding: 6px 12px; border:none; border-radius:4px; cursor:pointer;">Deactivate</button>
+                        <button class="add-btn edit-staff-btn" data-id="<?= $staffRow['user_id'] ?>" style="background: #1e90ff; color:#fff; padding: 6px 12px; border:none; border-radius:4px; cursor:pointer;">Edit</button>
+                        <button class="add-btn delete-staff-btn" data-id="<?= $staffRow['user_id'] ?>" style="background: #e63946; color:#fff; padding: 6px 12px; border:none; border-radius:4px; cursor:pointer;">Deactivate</button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -1233,17 +1235,32 @@ $conn->close();
           if (response.success) {
               msg.style.color = "#16a34a";
               msg.textContent = response.message || "Profile updated successfully!";
-              Object.keys(data).forEach(key => { profileOriginal[key] = data[key]; });
+
+              // Use what the server actually verified was persisted in the DB
+              // (not just what we typed) as the new source of truth for the form.
+              const saved = {
+                  first_name: response.first_name ?? data.first_name,
+                  middle_name: response.middle_name ?? data.middle_name,
+                  last_name: response.last_name ?? data.last_name,
+                  email: response.email ?? data.email,
+                  phone_number: response.phone_number ?? data.phone_number,
+                  address: response.address ?? data.address
+              };
+              Object.keys(saved).forEach(key => {
+                  profileOriginal[key] = saved[key];
+                  const field = document.getElementById(key);
+                  if (field) field.value = saved[key];
+              });
               document.querySelectorAll("#profile .p-input").forEach(i => i.disabled = true);
               saveBtn.hidden = true;
               cancelBtn.hidden = true;
               editBtn.hidden = false;
 
               const nameHeader = document.getElementById("profileCardName");
-              if (nameHeader) nameHeader.textContent = `${data.first_name} ${data.last_name}`.trim();
+              if (nameHeader) nameHeader.textContent = `${saved.first_name} ${saved.last_name}`.trim();
 
               const headerWelcome = document.getElementById("headerWelcomeName");
-              if (headerWelcome) headerWelcome.textContent = `Welcome, ${data.first_name}`;
+              if (headerWelcome) headerWelcome.textContent = `Welcome, ${saved.first_name}`;
           } else {
               msg.style.color = "#e74c3c";
               msg.textContent = response.message || "Update failed.";

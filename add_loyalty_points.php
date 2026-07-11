@@ -20,10 +20,14 @@ if (!$data) {
     exit;
 }
 
-$customer_id = isset($data['customer_id']) ? (int)$data['customer_id'] : 0;
+$customer_id = isset($data['customer_id']) && is_numeric($data['customer_id']) ? (int)$data['customer_id'] : null;
 $points      = isset($data['points']) ? (float)$data['points'] : 0;
 
-if ($customer_id <= 0 || $points == 0) {
+// NOTE: customer_id=0 is a real, valid row in this database (a seed/walk-in
+// "Test Test" customer) — a bare `<= 0` check here would silently reject
+// every request for that specific customer, which is exactly this class of
+// bug. We only reject when customer_id was never actually provided/parsed.
+if ($customer_id === null || $points == 0) {
     echo json_encode(["success" => false, "message" => "Please provide a customer and a non-zero points value."]);
     exit;
 }

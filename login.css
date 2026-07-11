@@ -19,6 +19,7 @@ body {
 }
 
 /* Left: branding panel */
+/* Left: branding panel */
 .login-branding {
   flex: 0 0 60%;
   max-width: 60%;
@@ -26,7 +27,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 60px 70px;
+  padding: 60px 70px 60px 300px;
   color: #f1f5f9;
   background: radial-gradient(circle at 15% 20%, rgba(139,92,246,0.35), transparent 55%),
               radial-gradient(circle at 85% 80%, rgba(59,130,246,0.35), transparent 55%),
@@ -108,10 +109,8 @@ body {
 
 @media (max-width: 860px) {
   .login-page { flex-direction: column; }
-  .login-branding { flex-basis: auto; max-width: 100%; padding: 40px 30px; text-align:center; align-items:center; }
-  .login-branding .brand-mark { margin-left:auto; margin-right:auto; }
+  .login-branding { flex-basis: auto; max-width: 100%; padding: 40px 30px; }
   .login-branding > p { max-width:none; }
-  .brand-points { align-items:center; }
   .login-container { flex-basis: auto; max-width: 100%; min-height: auto; padding: 30px 20px 50px; }
 }
 
@@ -243,6 +242,7 @@ button.login-btn {
   font-size: 16px;
   background: linear-gradient(90deg, #3b82f6, #8b5cf6);
   color: white;
+  justify-content: center;
   cursor: pointer;
   transition: 0.3s;
 }

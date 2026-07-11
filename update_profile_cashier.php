@@ -29,33 +29,59 @@ if ($first_name === '' || $last_name === '') {
 }
 
 $stmt = $conn->prepare(
-    "UPDATE staff_info SET first_name=?, middle_name=?, last_name=?, email=?, phone_number=?, address=? WHERE user_id=?"
+    "INSERT INTO staff_info (user_id, first_name, middle_name, last_name, email, phone_number, address)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+        first_name = VALUES(first_name),
+        middle_name = VALUES(middle_name),
+        last_name = VALUES(last_name),
+        email = VALUES(email),
+        phone_number = VALUES(phone_number),
+        address = VALUES(address)"
 );
-$stmt->bind_param('ssssssi', $first_name, $middle_name, $last_name, $email, $phone_number, $address, $user_id);
+$stmt->bind_param('issssss', $user_id, $first_name, $middle_name, $last_name, $email, $phone_number, $address);
 
 try {
     $stmt->execute();
     $stmt->close();
 
-    // A MySQL UPDATE that matches zero rows is NOT an error — it just quietly
-    // changes nothing. Without this check, a mismatched user_id looks exactly
-    // like a successful save from the frontend's point of view.
-    $checkStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM staff_info WHERE user_id = ?");
-    $checkStmt->bind_param('i', $user_id);
-    $checkStmt->execute();
-    $exists = (int) $checkStmt->get_result()->fetch_assoc()['cnt'];
-    $checkStmt->close();
+    // Don't just trust the write — read the row back from the DB and compare
+    // against what we tried to save, so "saved" always means genuinely saved.
+    $verifyStmt = $conn->prepare(
+        "SELECT first_name, middle_name, last_name, email, phone_number, address FROM staff_info WHERE user_id = ?"
+    );
+    $verifyStmt->bind_param('i', $user_id);
+    $verifyStmt->execute();
+    $saved = $verifyStmt->get_result()->fetch_assoc();
+    $verifyStmt->close();
 
-    if ($exists === 0) {
+    $matches = $saved
+        && $saved['first_name'] === $first_name
+        && $saved['middle_name'] === $middle_name
+        && $saved['last_name'] === $last_name
+        && $saved['email'] === $email
+        && $saved['phone_number'] === $phone_number
+        && $saved['address'] === $address;
+
+    if (!$matches) {
         echo json_encode([
             'success' => false,
-            'message' => "No staff profile record found for this account (user_id={$user_id}). Nothing was saved — check that a matching row exists in staff_info.",
+            'message' => 'Save did not persist correctly. Please try again or contact support.',
         ]);
         exit;
     }
 
-    $_SESSION['user_first_name'] = $first_name;
-    echo json_encode(['success' => true, 'message' => 'Profile updated successfully.']);
+    $_SESSION['user_first_name'] = $saved['first_name'];
+    echo json_encode([
+        'success' => true,
+        'message' => 'Profile updated successfully.',
+        'first_name' => $saved['first_name'],
+        'middle_name' => $saved['middle_name'],
+        'last_name' => $saved['last_name'],
+        'email' => $saved['email'],
+        'phone_number' => $saved['phone_number'],
+        'address' => $saved['address'],
+    ]);
 } catch (mysqli_sql_exception $e) {
     echo json_encode(['success' => false, 'message' => 'Failed to update profile: ' . $e->getMessage()]);
 }

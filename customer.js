@@ -730,4 +730,20 @@ if (notificationBell && notificationDropdown) {
     setInterval(checkNotifications, 30000);
     checkNotifications();
 }
+
+// =======================================================
+// LIVE CLOCK ("Server Date & Time" widget, same as Admin/Cashier)
+// =======================================================
+const liveClockEl = document.getElementById('live-clock');
+if (liveClockEl) {
+    const tickClock = () => {
+        const now = new Date();
+        liveClockEl.textContent = now.toLocaleString('en-PH', {
+            weekday: 'long', year: 'numeric', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+        });
+    };
+    tickClock();
+    setInterval(tickClock, 1000);
+}
 });

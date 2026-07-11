@@ -78,9 +78,27 @@ if ($stmt->execute()) {
     $customer = $freshStmt->get_result()->fetch_assoc() ?: [];
     $freshStmt->close();
 
+    // Don't just trust the write — confirm the row actually exists and the
+    // values genuinely match what was submitted before calling it "saved".
+    $matches = $customer
+        && $customer['first_name'] === $first_name
+        && $customer['middle_name'] === $middle_name
+        && $customer['last_name'] === $last_name
+        && $customer['email'] === $email
+        && $customer['phone_number'] === $phone_number
+        && $customer['address'] === $address;
+
+    if (!$matches) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Save did not persist correctly. Please try again or contact support.',
+        ]);
+        exit;
+    }
+
     // Keep the session's display name in sync so the header greeting is
     // immediately correct without needing to log out and back in.
-    $_SESSION['user_first_name'] = $customer['first_name'] ?? $first_name;
+    $_SESSION['user_first_name'] = $customer['first_name'];
 
     echo json_encode([
         'success' => true,
