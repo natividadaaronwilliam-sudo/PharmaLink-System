@@ -38,7 +38,8 @@ $sql = "
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("ssidii", $lot_number, $expiration_date, $current_stock, $price, $supplier, $lot_id);
 
-if ($stmt->execute()) {
+try {
+    $stmt->execute();
     require_once 'includes/stock_status.php';
     $drugStmt = $conn->prepare('SELECT drug_id FROM inventory_lots WHERE lot_inventory_id = ?');
     $drugStmt->bind_param('i', $lot_id);
@@ -46,7 +47,7 @@ if ($stmt->execute()) {
     $drugRow = $drugStmt->get_result()->fetch_assoc();
     $drugStmt->close();
     if ($drugRow) {
-        syncDrugStockStatus($conn, (int)$drugRow['drug_id']);
+        syncStockStatusForDrug($conn, (int)$drugRow['drug_id']);
     }
     $admin_name = $_SESSION['user_first_name'] ?? 'Admin';
     $action = "Update Stock Lot";
@@ -57,9 +58,13 @@ if ($stmt->execute()) {
     $logStmt->close();
 
     echo json_encode(["success" => true, "message" => "Stock lot updated successfully."]);
-} else {
+} catch (mysqli_sql_exception $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Database Error: " . $stmt->error]);
+    if ($e->getCode() === 1062) {
+        echo json_encode(["success" => false, "message" => "This lot number already exists for this drug. Please use a different lot/batch number."]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Database error while updating the stock lot: " . $e->getMessage()]);
+    }
 }
 
 $stmt->close();

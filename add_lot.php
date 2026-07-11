@@ -49,10 +49,16 @@ $sql = "
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("issidi", $drug_id, $lot_number, $expiration_date, $current_stock, $price, $supplier);
 
-if ($stmt->execute()) {
+// mysqli throws mysqli_sql_exception on error by default (PHP 8.1+), so a
+// failed execute() (e.g. a duplicate lot number for this drug) never
+// reaches the old if/else below — it crashes with a raw PHP error page
+// instead of JSON, which is what broke the "Add Stock Lot" form. Catching
+// it here keeps the response valid JSON no matter what goes wrong.
+try {
+    $stmt->execute();
     $lot_id = $conn->insert_id;
     require_once 'includes/stock_status.php';
-    syncDrugStockStatus($conn, $drug_id);
+    syncStockStatusForDrug($conn, $drug_id);
 
     $admin_name = $_SESSION['user_first_name'] ?? 'Admin';
     $action = "Add Stock Lot";
@@ -64,8 +70,12 @@ if ($stmt->execute()) {
     $logStmt->close();
 
     echo json_encode(["success" => true, "id" => $lot_id]);
-} else {
-    echo json_encode(["success" => false, "message" => "Database Error: " . $stmt->error]);
+} catch (mysqli_sql_exception $e) {
+    if ($e->getCode() === 1062) { // duplicate key
+        echo json_encode(["success" => false, "message" => "This lot number already exists for this drug. Please use a different lot/batch number."]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Database error while saving the stock lot: " . $e->getMessage()]);
+    }
 }
 
 $stmt->close();

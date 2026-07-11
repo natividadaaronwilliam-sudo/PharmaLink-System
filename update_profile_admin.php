@@ -33,10 +33,11 @@ $stmt = $conn->prepare(
 );
 $stmt->bind_param('ssssssi', $first_name, $middle_name, $last_name, $email, $phone_number, $address, $user_id);
 
-if ($stmt->execute()) {
+try {
+    $stmt->execute();
     $_SESSION['user_first_name'] = $first_name;
     echo json_encode(['success' => true, 'message' => 'Profile updated successfully.']);
-} else {
-    echo json_encode(['success' => false, 'message' => 'Failed to update profile: ' . $stmt->error]);
+} catch (mysqli_sql_exception $e) {
+    echo json_encode(['success' => false, 'message' => 'Failed to update profile: ' . $e->getMessage()]);
 }
 $stmt->close();

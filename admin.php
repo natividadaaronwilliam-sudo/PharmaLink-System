@@ -257,6 +257,320 @@ $conn->close();
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
     <style>
+        /* ==== Profile page styles (reused from customer.css so Admin/Cashier/Customer profiles look consistent) ==== */
+
+/* =======================================
+   9. PROFILE PAGE
+   ======================================= */
+.customer-profile-page {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 18px 0 36px;
+}
+
+.customer-profile-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.customer-profile-header h2 {
+    margin: 0;
+    color: #1e3a8a;
+    font-size: 1.75rem;
+    line-height: 1.2;
+}
+
+.customer-profile-header p {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+.customer-profile-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 300px) minmax(420px, 1fr) minmax(260px, 300px);
+    gap: 20px;
+    align-items: start;
+}
+
+.profile-summary-card,
+.profile-details-card,
+.profile-password-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.profile-summary-card {
+    padding: 28px 22px;
+    text-align: center;
+}
+
+.profile-avatar-wrap {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    margin: 0 auto 16px;
+}
+
+.profile-avatar-wrap img {
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #e5e7eb;
+    background: #f8fafc;
+}
+
+.profile-photo-btn {
+    position: absolute;
+    right: 0;
+    bottom: 2px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #1e3a8a;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(30, 58, 138, 0.28);
+}
+
+#profile_image_input,
+#profile_avatar_input {
+    display: none;
+}
+
+.profile-summary-card h3 {
+    margin: 0;
+    color: #1e3a8a;
+    font-size: 1.35rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.profile-username {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+.profile-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.profile-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.profile-pill-blue {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.profile-pill-gold {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.profile-details-card {
+    padding: 24px;
+    min-width: 0;
+}
+
+.profile-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.profile-card-head h3,
+.profile-password-card h3 {
+    margin: 0;
+    color: #1e3a8a;
+    font-size: 1.08rem;
+}
+
+.profile-card-head p,
+.profile-password-card p {
+    margin: 5px 0 0;
+    color: #6b7280;
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.profile-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+.profile-form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.profile-form-grid label span {
+    color: #374151;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.profile-form-grid input,
+.profile-form-grid textarea,
+.profile-password-card input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.94rem;
+    background: #fff;
+}
+
+.profile-form-grid textarea {
+    min-height: 82px;
+    resize: vertical;
+}
+
+.profile-form-grid input:disabled,
+.profile-form-grid textarea:disabled {
+    background: #f9fafb;
+    color: #6b7280;
+    opacity: 1;
+}
+
+.profile-field-wide {
+    grid-column: 1 / -1;
+}
+
+.profile-form-msg {
+    min-height: 20px;
+    margin: 12px 0 0;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.profile-action-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.profile-btn {
+    border: none;
+    border-radius: 9px;
+    padding: 11px 16px;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+}
+
+.profile-btn[hidden] {
+    display: none;
+}
+
+.profile-btn-primary { background: #1e3a8a; }
+.profile-btn-success { background: #10b981; flex: 1; }
+.profile-btn-muted { background: #6b7280; min-width: 112px; }
+.profile-btn-danger { background: #dc2626; width: 100%; }
+
+.profile-password-card {
+    padding: 24px;
+    background: #fff7f7;
+    border-color: #fecaca;
+}
+
+.profile-password-card h3 {
+    color: #b91c1c;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-password-card p {
+    color: #7f1d1d;
+    margin-bottom: 16px;
+}
+
+.profile-password-card form {
+    display: grid;
+    gap: 12px;
+}
+
+@media (max-width: 1180px) {
+    .customer-profile-layout {
+        grid-template-columns: minmax(240px, 300px) minmax(420px, 1fr);
+    }
+
+    .profile-password-card {
+        grid-column: 2;
+    }
+}
+
+@media (max-width: 900px) {
+    .customer-profile-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-password-card {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 620px) {
+    .customer-profile-page {
+        padding-top: 8px;
+    }
+
+    .profile-details-card,
+    .profile-password-card,
+    .profile-summary-card {
+        padding: 18px;
+    }
+
+    .profile-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-action-row {
+        flex-direction: column;
+    }
+
+    .profile-btn-muted {
+        width: 100%;
+    }
+}
+
         /* Page-specific tweaks only — shared cards, tables, modals, buttons,
            badges and toasts now all live in assets/theme.css */
         .save, .update{ width:100%; margin-top:10px; padding:12px 15px !important; font-size:1.05rem; }
@@ -781,140 +1095,90 @@ $conn->close();
 </div>
 </section>
 
-<section id="profile" style="display:none; padding:30px; font-family:Arial, sans-serif;">
-  <div class="profile-card" style="
-        background:white; 
-        padding:30px; 
-        width:500px; 
-        margin: 0 auto; 
-        border-radius:12px; 
-        box-shadow:0 4px 15px rgba(0,0,0,0.08);
-      ">
-    <!-- Header -->
-    <div style="text-align:center; margin-bottom:25px;">
-      <div style="position:relative; width:110px; margin:0 auto 10px auto;">
-        <img id="profile_avatar" src="<?= !empty($staff['profile_image']) ? htmlspecialchars($staff['profile_image']) : 'https://cdn-icons-png.flaticon.com/512/2922/2922510.png' ?>"
-             style="width:110px; height:110px; border-radius:50%; object-fit:cover; border:3px solid #e5e7eb;">
-        <label for="profile_avatar_input" title="Change profile picture" style="
-              position:absolute; bottom:0; right:0;
-              background:#1e3a8a; color:white; width:32px; height:32px;
-              border-radius:50%; display:flex; align-items:center; justify-content:center;
-              cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.25); font-size:14px;">
-          <i class="fas fa-camera"></i>
-        </label>
-        <input type="file" id="profile_avatar_input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
-      </div>
-      <h2 style="margin:0; color:#1e3a8a;">
-        <?= htmlspecialchars($staff['first_name'] ?? $user_first_name) ?> <?= htmlspecialchars($staff['last_name'] ?? '') ?>
-      </h2>
-      <p style="margin:3px 0; color:#4b5563;">Administrator</p>
+<section id="profile" style="display:none; padding:30px;">
+  <div class="customer-profile-page">
+    <div class="customer-profile-header">
+        <div>
+            <h2>My Profile</h2>
+            <p>Manage your account information and login password.</p>
+        </div>
     </div>
 
-    <hr style="margin:20px 0; border-top:1px solid #e5e7eb;">
+    <div class="customer-profile-layout">
+        <aside class="profile-summary-card">
+            <div class="profile-avatar-wrap">
+                <img id="profile_avatar" src="<?= !empty($staff['profile_image']) ? htmlspecialchars($staff['profile_image']) : 'https://cdn-icons-png.flaticon.com/512/2922/2922510.png' ?>" alt="Profile photo">
+                <label for="profile_avatar_input" class="profile-photo-btn" title="Change profile picture">
+                    <i class="fas fa-camera"></i>
+                </label>
+                <input type="file" id="profile_avatar_input" accept="image/png,image/jpeg,image/webp,image/gif">
+            </div>
 
-    <!-- Account Details (editable in place, same behavior as Cashier profile) -->
-    <h3 style="color:#1e3a8a; margin-bottom:15px;">My Account Details</h3>
-    <table id="profileTable" style="width:100%; border-collapse:collapse; font-size:14px; color:#374151;">
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold; width:35%;">First Name:</td>
-        <td style="padding:8px 4px;"><input type="text" id="first_name" class="p-input" value="<?= htmlspecialchars($staff['first_name'] ?? '') ?>" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr style="background:#f9fafb;">
-        <td style="padding:8px 4px; font-weight:bold;">Middle Name:</td>
-        <td style="padding:8px 4px;"><input type="text" id="middle_name" class="p-input" value="<?= htmlspecialchars($staff['middle_name'] ?? '') ?>" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold;">Last Name:</td>
-        <td style="padding:8px 4px;"><input type="text" id="last_name" class="p-input" value="<?= htmlspecialchars($staff['last_name'] ?? '') ?>" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr style="background:#f9fafb;">
-        <td style="padding:8px 4px; font-weight:bold;">Email:</td>
-        <td style="padding:8px 4px;"><input type="email" id="email" class="p-input" value="<?= htmlspecialchars($staff_display_email) ?>" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold;">Phone:</td>
-        <td style="padding:8px 4px;"><input type="text" id="phone_number" class="p-input" value="<?= htmlspecialchars($staff['phone_number'] ?? '') ?>" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr style="background:#f9fafb;">
-        <td style="padding:8px 4px; font-weight:bold; vertical-align:top;">Address:</td>
-        <td style="padding:8px 4px;"><textarea id="address" class="p-input" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; resize:vertical;"><?= htmlspecialchars($staff['address'] ?? '') ?></textarea></td>
-      </tr>
-    </table>
+            <h3 id="profileCardName"><?= htmlspecialchars(trim(($staff['first_name'] ?? $user_first_name) . ' ' . ($staff['last_name'] ?? ''))) ?></h3>
+            <p class="profile-username">@<?= htmlspecialchars($staff['username'] ?? 'admin') ?></p>
 
-    <p id="message" style="text-align:center; font-weight:600; margin-top:10px;"></p>
+            <div class="profile-pill-row">
+                <span class="profile-pill profile-pill-blue"><i class="fas fa-shield-halved"></i>Administrator</span>
+            </div>
+        </aside>
 
-    <button id="profile_editBtn" style="
-        margin-top:10px; 
-        background:#1e3a8a; 
-        color:white; 
-        border:none; 
-        padding:12px 18px; 
-        width:100%; 
-        border-radius:8px; 
-        cursor:pointer; 
-        font-size:15px;
-      ">
-      Edit My Profile
-    </button>
-    <button id="saveBtn" style="
-        display:none;
-        margin-top:10px; 
-        background:#10b981; 
-        color:white; 
-        border:none; 
-        padding:12px 18px; 
-        width:100%; 
-        border-radius:8px; 
-        cursor:pointer; 
-        font-size:15px;
-      ">
-      Save Changes
-    </button>
-    <button id="profile_cancelBtn" style="
-        display:none;
-        margin-top:10px; 
-        background:#6b7280; 
-        color:white; 
-        border:none; 
-        padding:12px 18px; 
-        width:100%; 
-        border-radius:8px; 
-        cursor:pointer; 
-        font-size:15px;
-      ">
-      Cancel
-    </button>
-  </div><!-- /Account Details card -->
+        <div class="profile-details-card">
+            <div class="profile-card-head">
+                <div>
+                    <h3>Account Details</h3>
+                    <p>These values are loaded live from your staff record and saved straight to the database.</p>
+                </div>
+            </div>
 
-  <div class="profile-card" style="
-        background:#fff7f7;
-        border:1px solid #fecaca;
-        padding:30px;
-        width:500px;
-        margin: 24px auto 0 auto;
-        border-radius:12px;
-        box-shadow:0 4px 15px rgba(0,0,0,0.08);
-      ">
-    <h3 style="color:#b91c1c; margin-bottom:4px;"><i class="fas fa-lock" style="margin-right:8px;"></i>Change Password</h3>
-    <p style="color:#7f1d1d; font-size:13px; margin:0 0 16px;">This is separate from your account details above — updating it does not change your name, email, or contact info.</p>
-    <table style="width:100%; border-collapse:collapse; font-size:14px; color:#374151;">
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold; width:35%;">Current Password:</td>
-        <td style="padding:8px 4px;"><input type="password" id="current_password" autocomplete="current-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr style="background:#fef2f2;">
-        <td style="padding:8px 4px; font-weight:bold;">New Password:</td>
-        <td style="padding:8px 4px;"><input type="password" id="new_password" autocomplete="new-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold;">Confirm Password:</td>
-        <td style="padding:8px 4px;"><input type="password" id="confirm_password" autocomplete="new-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-    </table>
-    <button id="changePasswordBtn" type="button" style="margin-top:12px; background:#dc2626; color:white; border:none; padding:12px 18px; width:100%; border-radius:8px; cursor:pointer; font-size:15px;">Update Password</button>
-    <p id="password-message" style="text-align:center; font-weight:600; margin-top:8px;"></p>
+            <div class="profile-form-grid">
+                <label>
+                    <span>First Name</span>
+                    <input type="text" id="first_name" class="p-input" value="<?= htmlspecialchars($staff['first_name'] ?? '') ?>" disabled required>
+                </label>
+                <label>
+                    <span>Middle Name</span>
+                    <input type="text" id="middle_name" class="p-input" value="<?= htmlspecialchars($staff['middle_name'] ?? '') ?>" disabled>
+                </label>
+                <label>
+                    <span>Last Name</span>
+                    <input type="text" id="last_name" class="p-input" value="<?= htmlspecialchars($staff['last_name'] ?? '') ?>" disabled required>
+                </label>
+                <label>
+                    <span>Email</span>
+                    <input type="email" id="email" class="p-input" value="<?= htmlspecialchars($staff_display_email) ?>" disabled required>
+                </label>
+                <label>
+                    <span>Phone</span>
+                    <input type="text" id="phone_number" class="p-input" value="<?= htmlspecialchars($staff['phone_number'] ?? '') ?>" disabled>
+                </label>
+                <label class="profile-field-wide">
+                    <span>Address</span>
+                    <textarea id="address" class="p-input" disabled><?= htmlspecialchars($staff['address'] ?? '') ?></textarea>
+                </label>
+            </div>
 
-  </div><!-- /Change Password card -->
+            <p id="message" class="profile-form-msg" aria-live="polite"></p>
+
+            <div class="profile-action-row">
+                <button type="button" id="profile_editBtn" class="profile-btn profile-btn-primary"><i class="fas fa-pen"></i>Edit Profile</button>
+                <button type="button" id="saveBtn" class="profile-btn profile-btn-success" hidden><i class="fas fa-check"></i>Save Changes</button>
+                <button type="button" id="profile_cancelBtn" class="profile-btn profile-btn-muted" hidden>Cancel</button>
+            </div>
+        </div>
+
+        <aside class="profile-password-card">
+            <h3><i class="fas fa-lock"></i>Change Password</h3>
+            <p>This is separate from your account details above — updating it does not change your name, email, or contact info.</p>
+            <form id="adminPasswordForm">
+                <input type="password" id="current_password" autocomplete="current-password" placeholder="Current password">
+                <input type="password" id="new_password" autocomplete="new-password" placeholder="New password (min 6 characters)">
+                <input type="password" id="confirm_password" autocomplete="new-password" placeholder="Confirm new password">
+                <button type="submit" id="changePasswordBtn" class="profile-btn profile-btn-danger">Update Password</button>
+                <p id="password-message" class="profile-form-msg" aria-live="polite"></p>
+            </form>
+        </aside>
+    </div>
+  </div>
 </section>
 
 <script>
@@ -929,10 +1193,10 @@ $conn->close();
 
   editBtn.onclick = () => {
       document.querySelectorAll("#profile .p-input").forEach(i => i.disabled = false);
-      saveBtn.style.display = "block";
-      cancelBtn.style.display = "block";
-      editBtn.style.display = "none";
-      msg.innerHTML = "";
+      saveBtn.hidden = false;
+      cancelBtn.hidden = false;
+      editBtn.hidden = true;
+      msg.textContent = "";
   };
 
   cancelBtn.onclick = () => {
@@ -940,10 +1204,10 @@ $conn->close();
           i.value = profileOriginal[i.id];
           i.disabled = true;
       });
-      saveBtn.style.display = "none";
-      cancelBtn.style.display = "none";
-      editBtn.style.display = "block";
-      msg.innerHTML = "";
+      saveBtn.hidden = true;
+      cancelBtn.hidden = true;
+      editBtn.hidden = false;
+      msg.textContent = "";
   };
 
   saveBtn.onclick = () => {
@@ -956,6 +1220,9 @@ $conn->close();
           address: document.getElementById("address").value.trim()
       };
 
+      msg.style.color = "#6b7280";
+      msg.textContent = "Saving...";
+
       fetch("update_profile_admin.php", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -964,32 +1231,33 @@ $conn->close();
       .then(res => res.json())
       .then(response => {
           if (response.success) {
-              msg.style.color = "green";
-              msg.innerHTML = "Profile updated successfully!";
+              msg.style.color = "#16a34a";
+              msg.textContent = response.message || "Profile updated successfully!";
               Object.keys(data).forEach(key => { profileOriginal[key] = data[key]; });
               document.querySelectorAll("#profile .p-input").forEach(i => i.disabled = true);
-              saveBtn.style.display = "none";
-              cancelBtn.style.display = "none";
-              editBtn.style.display = "block";
+              saveBtn.hidden = true;
+              cancelBtn.hidden = true;
+              editBtn.hidden = false;
 
-              const nameHeader = document.querySelector("#profile .profile-card h2");
-              if (nameHeader) nameHeader.textContent = `${data.first_name} ${data.last_name}`;
+              const nameHeader = document.getElementById("profileCardName");
+              if (nameHeader) nameHeader.textContent = `${data.first_name} ${data.last_name}`.trim();
 
               const headerWelcome = document.getElementById("headerWelcomeName");
               if (headerWelcome) headerWelcome.textContent = `Welcome, ${data.first_name}`;
           } else {
-              msg.style.color = "red";
-              msg.innerHTML = response.message || "Update failed.";
+              msg.style.color = "#e74c3c";
+              msg.textContent = response.message || "Update failed.";
           }
       })
       .catch(err => {
-          msg.style.color = "red";
-          msg.innerHTML = "Request error.";
+          msg.style.color = "#e74c3c";
+          msg.textContent = "Request error.";
           console.error("AJAX error:", err);
       });
   };
 
-  document.getElementById("changePasswordBtn")?.addEventListener("click", () => {
+  document.getElementById("adminPasswordForm").addEventListener("submit", (e) => {
+      e.preventDefault();
       const pwMsg = document.getElementById("password-message");
       fetch("change_password.php", {
           method: "POST",
@@ -1002,13 +1270,13 @@ $conn->close();
       })
       .then(res => res.json())
       .then(r => {
-          pwMsg.style.color = r.success ? "green" : "red";
+          pwMsg.style.color = r.success ? "#16a34a" : "#e74c3c";
           pwMsg.textContent = r.message || (r.success ? "Password updated." : "Failed.");
           if (r.success) {
               ["current_password","new_password","confirm_password"].forEach(id => document.getElementById(id).value = "");
           }
       })
-      .catch(() => { pwMsg.style.color = "red"; pwMsg.textContent = "Request error."; });
+      .catch(() => { pwMsg.style.color = "#e74c3c"; pwMsg.textContent = "Request error."; });
   });
 
   document.getElementById("profile_avatar_input").addEventListener("change", function () {
@@ -1022,17 +1290,17 @@ $conn->close();
           .then(response => {
               if (response.success) {
                   document.getElementById("profile_avatar").src = response.path + "?t=" + Date.now();
-                  msg.style.color = "green";
-                  msg.innerHTML = "Profile picture updated!";
+                  msg.style.color = "#16a34a";
+                  msg.textContent = "Profile picture updated!";
               } else {
-                  msg.style.color = "red";
-                  msg.innerHTML = response.message || "Failed to upload picture.";
+                  msg.style.color = "#e74c3c";
+                  msg.textContent = response.message || "Failed to upload picture.";
               }
           })
           .catch(err => {
               console.error("Avatar upload error:", err);
-              msg.style.color = "red";
-              msg.innerHTML = "Upload error.";
+              msg.style.color = "#e74c3c";
+              msg.textContent = "Upload error.";
           });
   });
 })();

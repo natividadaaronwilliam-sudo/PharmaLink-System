@@ -104,10 +104,13 @@ $conn->close();
 //    failure — missing python, missing `prophet` package, timeout, bad
 //    JSON, non-zero exit code, etc.
 // ------------------------------------------------------------------
+$today = date('Y-m-d');
+$rangeStart = date('Y-m-d', strtotime("-{$HISTORY_WINDOW_DAYS} days"));
+
 $prophetPayload = json_encode([
     'period' => $period,
-    'today' => date('Y-m-d'),
-    'range_start' => date('Y-m-d', strtotime("-{$HISTORY_WINDOW_DAYS} days")),
+    'today' => $today,
+    'range_start' => $rangeStart,
     'daily_sales' => $history,
     'items' => $perDrug,
 ]);
@@ -123,7 +126,7 @@ if ($prophetResult !== null) {
 // Fallback: linear regression + day-of-week seasonality (pure PHP, no
 // external dependencies — always available).
 // ------------------------------------------------------------------
-echo json_encode(runLinearRegressionFallback($history, $perDrug, $period));
+echo json_encode(runLinearRegressionFallback($history, $perDrug, $period, $rangeStart, $today));
 exit;
 
 
@@ -223,22 +226,40 @@ function tryRunSubprocess(array $cmdParts, string $stdin, int $timeoutSeconds = 
  * Pure-PHP fallback: linear regression (least squares) on daily totals to
  * capture the overall trend, combined with day-of-week seasonal indices.
  * Used only when Prophet isn't available on this machine.
+ *
+ * IMPORTANT: every series (total ₱, total qty, and each drug's own qty) is
+ * zero-filled across the *same* real calendar range and forecast from the
+ * *same* anchor date (today). Earlier versions ran each metric's regression
+ * on its own compressed "day 0, 1, 2..." index — which ignored the actual
+ * gaps between sale days. For sparse/spiky real-world data that let the
+ * aggregate sales trend collapse to ₱0 while individual items still showed
+ * positive numbers, an inconsistency that had nothing to do with the data
+ * itself. Sharing one real-date timeline across all series keeps the
+ * numbers coherent.
  */
-function runLinearRegressionFallback(array $history, array $perDrug, int $period): array {
-    $xs = range(0, count($history) - 1);
-    $salesYs = array_column($history, 'total');
-    $qtyYs = array_column($history, 'qty');
+function runLinearRegressionFallback(array $history, array $perDrug, int $period, string $rangeStart, string $today): array {
+    $dateRange = buildDateRange($rangeStart, $today);
+
+    $totalByDate = [];
+    $qtyByDate = [];
+    foreach ($history as $point) {
+        $totalByDate[$point['date']] = ($totalByDate[$point['date']] ?? 0) + $point['total'];
+        $qtyByDate[$point['date']] = ($qtyByDate[$point['date']] ?? 0) + $point['qty'];
+    }
+    $salesYs = array_map(fn($d) => $totalByDate[$d] ?? 0.0, $dateRange);
+    $qtyYs = array_map(fn($d) => $qtyByDate[$d] ?? 0.0, $dateRange);
+    $xs = range(0, count($dateRange) - 1);
 
     [$salesSlope, $salesIntercept] = linearRegression($xs, $salesYs);
     [$qtySlope, $qtyIntercept] = linearRegression($xs, $qtyYs);
 
     $dowSums = array_fill(0, 7, 0.0);
     $dowCounts = array_fill(0, 7, 0);
-    foreach ($history as $i => $point) {
+    foreach ($dateRange as $i => $date) {
         $trendVal = $salesSlope * $i + $salesIntercept;
         if ($trendVal <= 0) continue;
-        $dow = (int) date('w', strtotime($point['date']));
-        $ratio = max(0.5, min(1.5, $point['total'] / $trendVal));
+        $dow = (int) date('w', strtotime($date));
+        $ratio = max(0.5, min(1.5, $salesYs[$i] / $trendVal));
         $dowSums[$dow] += $ratio;
         $dowCounts[$dow]++;
     }
@@ -247,8 +268,7 @@ function runLinearRegressionFallback(array $history, array $perDrug, int $period
         $dowFactor[$d] = $dowCounts[$d] > 0 ? ($dowSums[$d] / $dowCounts[$d]) : 1.0;
     }
 
-    $lastIndex = count($history) - 1;
-    $lastDate = end($history)['date'];
+    $lastIndex = count($dateRange) - 1; // index of "today" in the zero-filled range
 
     $forecastLabels = [];
     $forecastValues = [];
@@ -257,7 +277,7 @@ function runLinearRegressionFallback(array $history, array $perDrug, int $period
 
     for ($d = 1; $d <= $period; $d++) {
         $futureIndex = $lastIndex + $d;
-        $futureDate = date('Y-m-d', strtotime($lastDate . " +{$d} days"));
+        $futureDate = date('Y-m-d', strtotime($today . " +{$d} days"));
         $dow = (int) date('w', strtotime($futureDate));
 
         $trendSales = max(0, $salesSlope * $futureIndex + $salesIntercept);
@@ -273,14 +293,17 @@ function runLinearRegressionFallback(array $history, array $perDrug, int $period
     $itemForecasts = [];
     $categoryTotals = [];
     foreach ($perDrug as $info) {
-        $series = array_column($info['series'], 'qty');
-        $n = count($series);
-        $xsItem = range(0, max(0, $n - 1));
-        [$slope, $intercept] = linearRegression($xsItem, $series);
+        $qtyByDateItem = [];
+        foreach ($info['series'] as $pt) {
+            $qtyByDateItem[$pt['date']] = ($qtyByDateItem[$pt['date']] ?? 0) + $pt['qty'];
+        }
+        $itemYs = array_map(fn($d) => $qtyByDateItem[$d] ?? 0.0, $dateRange);
+        $itemXs = range(0, count($dateRange) - 1);
+        [$slope, $intercept] = linearRegression($itemXs, $itemYs);
 
         $predictedQty = 0;
         for ($d = 1; $d <= $period; $d++) {
-            $futureIndex = $n - 1 + $d;
+            $futureIndex = $lastIndex + $d;
             $predictedQty += max(0, $slope * $futureIndex + $intercept);
         }
         $predictedQty = round($predictedQty);
@@ -317,6 +340,20 @@ function runLinearRegressionFallback(array $history, array $perDrug, int $period
         'history_days' => count($history),
         'engine' => 'linear_regression_fallback',
     ];
+}
+
+/**
+ * Returns an array of 'Y-m-d' strings for every day from $start to $end inclusive.
+ */
+function buildDateRange(string $start, string $end): array {
+    $dates = [];
+    $cursor = strtotime($start);
+    $endTs = strtotime($end);
+    while ($cursor <= $endTs) {
+        $dates[] = date('Y-m-d', $cursor);
+        $cursor = strtotime('+1 day', $cursor);
+    }
+    return $dates;
 }
 
 /**

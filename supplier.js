@@ -267,6 +267,7 @@ class PharmacySupplierManager {
             suppliers.forEach(supplier => {
                 const card = document.createElement('div');
                 card.className = 'supplier-card';
+                card.style.cssText = 'display:flex; flex-direction:column; height:100%; background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.08);';
                 card.innerHTML = `
                     <div class="supplier-header">
                         <h3>${supplier.supplier_name}</h3>
@@ -276,17 +277,19 @@ class PharmacySupplierManager {
                     <p><strong>Contact:</strong> ${supplier.contact_number || 'N/A'}</p>
                     <p><strong>Email:</strong> ${supplier.email || 'N/A'}</p>
                     <p><strong>Address:</strong> ${supplier.address || 'N/A'}</p>
-                    <p><strong>Medicines Supplied:</strong></p>
-                    <ul>
-                        ${
-                            lots.filter(lot => lot.supplier == supplier.supplier_id).length > 0
-                            ? lots.filter(lot => lot.supplier == supplier.supplier_id)
-                                .map(lot => `<li>${lot.generic_name} (${lot.brand_name}, ${lot.dosage} ${lot.form})</li>`)
-                                .join('')
-                            : '<li><em>No medicines listed</em></li>'
-                        }
-                    </ul>
-                    <button type="button" class="btn-edit-supplier" style="margin-top:8px; padding:6px 12px; background:#1e90ff; color:#fff; border:none; border-radius:4px; cursor:pointer;">Edit</button>
+                    <div style="flex:1 0 auto;">
+                        <p><strong>Medicines Supplied:</strong></p>
+                        <ul>
+                            ${
+                                lots.filter(lot => lot.supplier == supplier.supplier_id).length > 0
+                                ? lots.filter(lot => lot.supplier == supplier.supplier_id)
+                                    .map(lot => `<li>${lot.generic_name} (${lot.brand_name}, ${lot.dosage} ${lot.form})</li>`)
+                                    .join('')
+                                : '<li><em>No medicines listed</em></li>'
+                            }
+                        </ul>
+                    </div>
+                    <button type="button" class="btn-edit-supplier" style="margin-top:12px; align-self:flex-start; padding:6px 12px; background:#1e90ff; color:#fff; border:none; border-radius:4px; cursor:pointer;">Edit</button>
                 `;
                 const editBtn = card.querySelector('.btn-edit-supplier');
                 editBtn.addEventListener('click', () => this.showEditSupplierModal(supplier));
