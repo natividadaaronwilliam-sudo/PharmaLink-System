@@ -49,12 +49,74 @@ if ($customer_id) {
     </div>
 </div>
 
-<div class="quick-actions" style="background:#fff; border-radius:10px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-    <h3 style="color:#1e3a8a; margin-bottom:14px;">Quick Actions</h3>
-    <div style="display:flex; flex-wrap:wrap; gap:10px;">
-        <button class="quick-action-btn" onclick="document.querySelector('.nav-item[data-target=products]').click()" style="padding:10px 16px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer;"><i class="fas fa-capsules"></i> Shop Now</button>
-        <button class="quick-action-btn" onclick="document.querySelector('.nav-item[data-target=orders]').click()" style="padding:10px 16px;border:none;border-radius:6px;background:#16a34a;color:#fff;cursor:pointer;"><i class="fas fa-receipt"></i> View Orders</button>
-        <button class="quick-action-btn" onclick="document.querySelector('.nav-item[data-target=prescription]').click()" style="padding:10px 16px;border:none;border-radius:6px;background:#8b5cf6;color:#fff;cursor:pointer;"><i class="fas fa-file-prescription"></i> Upload Prescription</button>
-        <button class="quick-action-btn" onclick="document.querySelector('.nav-item[data-target=profile]').click()" style="padding:10px 16px;border:none;border-radius:6px;background:#f59e0b;color:#fff;cursor:pointer;"><i class="fas fa-user"></i> My Profile</button>
+<div style="display:flex; gap:20px; flex-wrap:wrap;">
+    <!-- Recent Orders (70%) -->
+    <div class="card" style="flex:7; min-width:320px; padding:20px; border-radius:10px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="color:#1e3a8a; margin:0;"><i class="fas fa-receipt"></i> Recent Orders</h3>
+            <a href="javascript:void(0)" onclick="document.querySelector('.nav-item[data-target=orders]').click()" style="font-size:0.85em; color:#2563eb; text-decoration:none; font-weight:600;">View All &rarr;</a>
+        </div>
+        <?php
+        $recent_orders = [];
+        if ($customer_id) {
+            $rstmt = $conn->prepare(
+                "SELECT order_id, order_date, order_status, total_amount
+                 FROM customer_orders WHERE customer_id = ? ORDER BY order_date DESC LIMIT 5"
+            );
+            $rstmt->bind_param('i', $customer_id);
+            $rstmt->execute();
+            $rres = $rstmt->get_result();
+            while ($row = $rres->fetch_assoc()) {
+                $recent_orders[] = $row;
+            }
+            $rstmt->close();
+        }
+        function home_status_class($status) {
+            return strtolower(str_replace(' ', '-', trim($status)));
+        }
+        ?>
+        <?php if (empty($recent_orders)): ?>
+            <p style="text-align:center; color:#888; padding:30px 0;">You haven't placed any orders yet.</p>
+        <?php else: ?>
+            <table style="width:100%; border-collapse:collapse; font-size:0.9em;">
+                <thead>
+                    <tr style="border-bottom:2px solid #e5e7eb; text-align:left; color:#6b7280;">
+                        <th style="padding:8px 6px;">Order #</th>
+                        <th style="padding:8px 6px;">Date</th>
+                        <th style="padding:8px 6px;">Status</th>
+                        <th style="padding:8px 6px; text-align:right;">Total</th>
+                        <th style="padding:8px 6px; text-align:center;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($recent_orders as $ro): ?>
+                    <tr style="border-bottom:1px solid #f3f4f6;">
+                        <td style="padding:10px 6px;">#<?= (int)$ro['order_id'] ?></td>
+                        <td style="padding:10px 6px; color:#6b7280;"><?= htmlspecialchars(date('M d, Y', strtotime($ro['order_date']))) ?></td>
+                        <td style="padding:10px 6px;">
+                            <span class="<?= htmlspecialchars(home_status_class($ro['order_status'])) ?>" style="padding:4px 10px;border-radius:12px;font-size:0.82em;font-weight:600;">
+                                <?= htmlspecialchars($ro['order_status']) ?>
+                            </span>
+                        </td>
+                        <td style="padding:10px 6px; text-align:right; font-weight:600;">₱<?= number_format((float)$ro['total_amount'], 2) ?></td>
+                        <td style="padding:10px 6px; text-align:center;">
+                            <button type="button" onclick="window.showOrderDetails(<?= (int)$ro['order_id'] ?>)" style="padding:5px 10px;border:none;border-radius:6px;background:#eff6ff;color:#2563eb;cursor:pointer;font-size:0.85em;">View</button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </div>
+
+    <!-- Quick Actions (30%) -->
+    <div class="quick-actions" style="flex:3; min-width:220px; background:#fff; border-radius:10px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.05); align-self:flex-start;">
+        <h3 style="color:#1e3a8a; margin-bottom:14px;">Quick Actions</h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <button class="quick-action-btn" onclick="document.querySelector('.nav-item[data-target=products]').click()" style="padding:10px 16px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer;text-align:left;"><i class="fas fa-capsules"></i> Shop Now</button>
+            <button class="quick-action-btn" onclick="document.querySelector('.nav-item[data-target=orders]').click()" style="padding:10px 16px;border:none;border-radius:6px;background:#16a34a;color:#fff;cursor:pointer;text-align:left;"><i class="fas fa-receipt"></i> View Orders</button>
+            <button class="quick-action-btn" onclick="document.querySelector('.nav-item[data-target=prescription]').click()" style="padding:10px 16px;border:none;border-radius:6px;background:#8b5cf6;color:#fff;cursor:pointer;text-align:left;"><i class="fas fa-file-prescription"></i> Upload Prescription</button>
+            <button class="quick-action-btn" onclick="document.querySelector('.nav-item[data-target=profile]').click()" style="padding:10px 16px;border:none;border-radius:6px;background:#f59e0b;color:#fff;cursor:pointer;text-align:left;"><i class="fas fa-user"></i> My Profile</button>
+        </div>
     </div>
 </div>

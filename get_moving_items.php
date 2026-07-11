@@ -32,7 +32,8 @@ $stmt->close();
 $slow = [];
 $res2 = $conn->query("
     SELECT d.generic_name, d.brand_name, d.stock_status,
-           COALESCE(SUM(il.current_stock), 0) AS on_hand
+           COALESCE(SUM(il.current_stock), 0) AS on_hand,
+           COALESCE(recent.sold, 0) AS recent_sold
     FROM drugs_master d
     LEFT JOIN inventory_lots il ON d.drug_id = il.drug_id AND il.is_active = 1
     LEFT JOIN (
@@ -45,8 +46,8 @@ $res2 = $conn->query("
     ) recent ON d.drug_id = recent.drug_id
     WHERE d.is_active = 1
     GROUP BY d.drug_id, d.generic_name, d.brand_name, d.stock_status
-    HAVING on_hand > 0 AND COALESCE(recent.sold, 0) <= 2
-    ORDER BY on_hand DESC, recent.sold ASC
+    HAVING on_hand > 0 AND recent_sold <= 2
+    ORDER BY on_hand DESC, recent_sold ASC
     LIMIT 5
 ");
 if ($res2) {
@@ -60,4 +61,4 @@ if ($res2) {
 }
 
 echo json_encode(['fast_moving' => $fast, 'slow_moving' => $slow]);
-$conn->close();
+$conn->close(); 

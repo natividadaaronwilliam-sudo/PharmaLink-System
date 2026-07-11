@@ -19,17 +19,22 @@ $result = $conn->query($sql);
 
 $catResult = $conn->query("SELECT DISTINCT category FROM drugs_master WHERE is_active = 1 ORDER BY category ASC");
 ?>
-<div class="products-header" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px;">
+<div class="products-header" style="margin-bottom:16px;">
     <h2 style="margin:0;">Shop Products</h2>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <input type="text" id="searchInput" placeholder="Search medicine..." style="padding:9px 12px;border:1px solid #d1d5db;border-radius:6px;min-width:200px;">
-        <select id="categoryFilter" style="padding:9px 12px;border:1px solid #d1d5db;border-radius:6px;">
-            <option value="">All Categories</option>
-            <?php while ($cat = $catResult->fetch_assoc()): ?>
-                <option value="<?= htmlspecialchars(ucwords(strtolower($cat['category']))) ?>"><?= htmlspecialchars(ucwords(strtolower($cat['category']))) ?></option>
-            <?php endwhile; ?>
-        </select>
+</div>
+
+<div class="toolbar-bar" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:10px 14px; margin-bottom:20px;">
+    <div style="position:relative; flex:1; min-width:220px;">
+        <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:13px;"></i>
+        <input type="text" id="searchInput" placeholder="Search medicine..." autocomplete="off"
+               style="width:100%; box-sizing:border-box; height:38px; padding:0 12px 0 32px; border:1px solid #d1d5db; border-radius:6px; font-size:14px;">
     </div>
+    <select id="categoryFilter" style="height:38px; box-sizing:border-box; padding:0 10px; border:1px solid #d1d5db; border-radius:6px; font-size:14px;">
+        <option value="">All Categories</option>
+        <?php while ($cat = $catResult->fetch_assoc()): ?>
+            <option value="<?= htmlspecialchars(ucwords(strtolower($cat['category']))) ?>"><?= htmlspecialchars(ucwords(strtolower($cat['category']))) ?></option>
+        <?php endwhile; ?>
+    </select>
 </div>
 
 <div class="products-container" style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">

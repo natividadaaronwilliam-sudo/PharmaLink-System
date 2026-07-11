@@ -72,10 +72,22 @@ if ($profile_image_path) {
 }
 
 if ($stmt->execute()) {
+    $freshStmt = $conn->prepare("SELECT first_name, middle_name, last_name, email, phone_number, address, customer_type, loyalty_points, profile_image, username FROM customers WHERE customer_id = ? LIMIT 1");
+    $freshStmt->bind_param('i', $customer_id);
+    $freshStmt->execute();
+    $customer = $freshStmt->get_result()->fetch_assoc() ?: [];
+    $freshStmt->close();
+
     // Keep the session's display name in sync so the header greeting is
     // immediately correct without needing to log out and back in.
-    $_SESSION['user_first_name'] = $first_name;
-    echo json_encode(['success' => true, 'message' => 'Profile updated successfully.', 'profile_image' => $profile_image_path]);
+    $_SESSION['user_first_name'] = $customer['first_name'] ?? $first_name;
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Profile updated successfully.',
+        'profile_image' => $customer['profile_image'] ?? $profile_image_path,
+        'customer' => $customer
+    ]);
 } else {
     echo json_encode(['success' => false, 'message' => 'Failed to update profile: ' . $stmt->error]);
 }

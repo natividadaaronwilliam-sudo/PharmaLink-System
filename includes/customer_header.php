@@ -16,24 +16,20 @@ if (!isset($conn) || !($conn instanceof mysqli)) {
     require_once __DIR__ . '/../db_pharmacy.php';
 }
 
-$customer_first_name = $_SESSION['user_first_name'] ?? 'Customer';
+$customer_first_name = 'Customer';
+$customer_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+if ($customer_id > 0) {
+    $stmt = $conn->prepare("SELECT first_name FROM customers WHERE customer_id = ? LIMIT 1");
+    $stmt->bind_param('i', $customer_id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
 
-// Small profile snapshot for the header + avatar. Falls back gracefully if
-// the row can't be found so the header never fatal-errors.
-$header_customer = ['profile_image' => null];
-if (!empty($_SESSION['user_id'])) {
-    $hstmt = $conn->prepare("SELECT profile_image FROM customers WHERE customer_id = ?");
-    $hstmt->bind_param('i', $_SESSION['user_id']);
-    $hstmt->execute();
-    $hres = $hstmt->get_result();
-    if ($hres && $hres->num_rows > 0) {
-        $header_customer = $hres->fetch_assoc();
+    if (!empty($row['first_name'])) {
+        $customer_first_name = $row['first_name'];
+        $_SESSION['user_first_name'] = $row['first_name'];
     }
-    $hstmt->close();
 }
-$avatar_src = !empty($header_customer['profile_image'])
-    ? htmlspecialchars($header_customer['profile_image'])
-    : 'https://via.placeholder.com/36?text=%20';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -69,13 +65,9 @@ $avatar_src = !empty($header_customer['profile_image'])
         <div class="header">
             <h3>Customer Portal</h3>
             <div class="header-right">
-                <div class="notification" id="customerNotificationBell">
-                    <i class="fas fa-bell"></i>
-                    <div id="notification-dropdown"></div>
-                </div>
-                <img src="<?= $avatar_src ?>" alt="Profile" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #ddd;">
-                <span>Welcome, <?= htmlspecialchars($customer_first_name) ?></span>
+                <?php $notif_mode = 'customer'; require __DIR__ . '/notification_bell.php'; ?>
+                <span id="headerWelcomeName">Welcome, <?= htmlspecialchars($customer_first_name) ?></span>
             </div>
         </div>
 
-        <div class="content">
+        <div class="content">   

@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? '') !== 'Admin') {
+if (!isset($_SESSION['user_id']) || strtolower(trim($_SESSION['user_role'] ?? '')) !== 'admin') {
     header('Location: index.php');
     exit;
 }
@@ -286,11 +286,8 @@ $conn->close();
 <div class="header">
     <h3>Admin Portal</h3>
     <div class="header-right">
-        <div class="notification" id="staffNotificationBell">
-            <i class="fas fa-bell"></i>
-            <div id="staff-notification-dropdown" class="staff-notif-dropdown"></div>
-        </div>
-<span>Welcome, <?php echo htmlspecialchars($user_first_name); ?></span>    </div>
+        <?php $notif_mode = 'staff'; require 'includes/notification_bell.php'; ?>
+<span id="headerWelcomeName">Welcome, <?php echo htmlspecialchars($user_first_name); ?></span>    </div>
 </div>
 
         <div class="content">
@@ -564,7 +561,7 @@ $conn->close();
     <div class="toolbar-bar" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:10px 14px; margin-bottom:20px;">
         <div style="position:relative; flex:1; min-width:220px;">
             <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:13px;"></i>
-            <input type="text" id="staff-search" placeholder="Search staff by name or email..."
+            <input type="text" id="staff-search" placeholder="Search staff by name or email..." autocomplete="off"
                    style="width:100%; box-sizing:border-box; height:38px; padding: 0 12px 0 32px; border: 1px solid #d1d5db; border-radius: 6px; font-size:14px;">
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
@@ -624,7 +621,7 @@ $conn->close();
     <div class="toolbar-bar" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:10px 14px; margin-bottom:20px;">
         <div style="position:relative; flex:1; min-width:220px;">
             <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:13px;"></i>
-            <input type="text" id="customer-search" placeholder="Search customers by name or email..."
+            <input type="text" id="customer-search" placeholder="Search customers by name or email..." autocomplete="off"
                    style="width:100%; box-sizing:border-box; height:38px; padding: 0 12px 0 32px; border: 1px solid #d1d5db; border-radius: 6px; font-size:14px;">
         </div>
     </div>
@@ -759,7 +756,10 @@ $conn->close();
 <div class="forecast-main" style="display:flex; align-items:flex-start; gap:20px; margin-bottom:30px;">
     <!-- Main Forecast Chart (70%) -->
     <div class="forecast-chart" style="flex:7; position:relative; height:420px; max-height:420px; overflow:hidden; background:linear-gradient(180deg,#ffffff,#f8fafc); border-radius:12px; padding:16px; box-shadow:0 4px 16px rgba(30,58,138,0.08); box-sizing:border-box;">
-        <h3 style="color:#1e3a8a; margin:0 0 8px 0; font-size:15px; font-weight:600;">📊 Predicted Sales Trend</h3>
+        <h3 style="color:#1e3a8a; margin:0 0 8px 0; font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px;">
+            📊 Predicted Sales Trend
+            <span id="forecastEngineBadge" style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; background:#eef2ff; color:#4338ca; display:none;"></span>
+        </h3>
         <div style="position:relative; width:100%; height:calc(100% - 28px);">
             <canvas id="forecastChart"></canvas>
         </div>
@@ -884,27 +884,37 @@ $conn->close();
       ">
       Cancel
     </button>
+  </div><!-- /Account Details card -->
 
-    <hr style="margin:24px 0; border-top:1px solid #e5e7eb;">
-    <h3 style="color:#1e3a8a; margin-bottom:12px;">Change Password</h3>
+  <div class="profile-card" style="
+        background:#fff7f7;
+        border:1px solid #fecaca;
+        padding:30px;
+        width:500px;
+        margin: 24px auto 0 auto;
+        border-radius:12px;
+        box-shadow:0 4px 15px rgba(0,0,0,0.08);
+      ">
+    <h3 style="color:#b91c1c; margin-bottom:4px;"><i class="fas fa-lock" style="margin-right:8px;"></i>Change Password</h3>
+    <p style="color:#7f1d1d; font-size:13px; margin:0 0 16px;">This is separate from your account details above — updating it does not change your name, email, or contact info.</p>
     <table style="width:100%; border-collapse:collapse; font-size:14px; color:#374151;">
       <tr>
         <td style="padding:8px 4px; font-weight:bold; width:35%;">Current Password:</td>
-        <td style="padding:8px 4px;"><input type="password" id="current_password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
+        <td style="padding:8px 4px;"><input type="password" id="current_password" autocomplete="current-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
       </tr>
-      <tr style="background:#f9fafb;">
+      <tr style="background:#fef2f2;">
         <td style="padding:8px 4px; font-weight:bold;">New Password:</td>
-        <td style="padding:8px 4px;"><input type="password" id="new_password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
+        <td style="padding:8px 4px;"><input type="password" id="new_password" autocomplete="new-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
       </tr>
       <tr>
         <td style="padding:8px 4px; font-weight:bold;">Confirm Password:</td>
-        <td style="padding:8px 4px;"><input type="password" id="confirm_password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
+        <td style="padding:8px 4px;"><input type="password" id="confirm_password" autocomplete="new-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
       </tr>
     </table>
     <button id="changePasswordBtn" type="button" style="margin-top:12px; background:#dc2626; color:white; border:none; padding:12px 18px; width:100%; border-radius:8px; cursor:pointer; font-size:15px;">Update Password</button>
     <p id="password-message" style="text-align:center; font-weight:600; margin-top:8px;"></p>
 
-  </div>
+  </div><!-- /Change Password card -->
 </section>
 
 <script>
@@ -964,6 +974,9 @@ $conn->close();
 
               const nameHeader = document.querySelector("#profile .profile-card h2");
               if (nameHeader) nameHeader.textContent = `${data.first_name} ${data.last_name}`;
+
+              const headerWelcome = document.getElementById("headerWelcomeName");
+              if (headerWelcome) headerWelcome.textContent = `Welcome, ${data.first_name}`;
           } else {
               msg.style.color = "red";
               msg.innerHTML = response.message || "Update failed.";
@@ -1043,6 +1056,7 @@ $conn->close();
     // Gradient bars — same hue family as PharmaLink's brand blue, gives the
     // "top items" chart some depth instead of flat fills.
     function barGradient(ctx, color) {
+        color = color || PALETTE[0]; // guard: Chart.js can resolve this before a real index/color exists
         const chartArea = ctx.chart.chartArea;
         if (!chartArea) return color;
         const g = ctx.chart.ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
@@ -1058,7 +1072,7 @@ $conn->close();
             datasets: [{
                 label: 'Predicted Units Sold',
                 data: [],
-                backgroundColor: (ctx) => barGradient(ctx, PALETTE[ctx.dataIndex % PALETTE.length]),
+                backgroundColor: (ctx) => barGradient(ctx, PALETTE[(ctx.dataIndex ?? 0) % PALETTE.length]),
                 borderRadius: 6,
                 borderSkipped: false,
                 maxBarThickness: 26
@@ -1085,27 +1099,50 @@ $conn->close();
         type: 'line',
         data: {
             labels: [],
-            datasets: [{
-                label: 'Forecasted Sales (₱)',
-                data: [],
-                borderColor: '#2563eb',
-                backgroundColor: (ctx) => {
-                    const chartArea = ctx.chart.chartArea;
-                    if (!chartArea) return 'rgba(37,99,235,0.12)';
-                    const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                    g.addColorStop(0, 'rgba(37,99,235,0.35)');
-                    g.addColorStop(1, 'rgba(37,99,235,0.02)');
-                    return g;
+            datasets: [
+                {
+                    // Prophet's upper confidence bound — invisible line, fills
+                    // down to the "Lower bound" dataset right after it to draw
+                    // the shaded uncertainty band. Empty data (linear-regression
+                    // fallback has no interval) simply draws nothing.
+                    label: 'Upper bound',
+                    data: [],
+                    borderWidth: 0,
+                    pointRadius: 0,
+                    fill: '+1',
+                    backgroundColor: 'rgba(37,99,235,0.10)',
+                    tension: 0.35
                 },
-                fill: true,
-                tension: 0.35,
-                borderWidth: 2.5,
-                pointRadius: 3,
-                pointHoverRadius: 6,
-                pointBackgroundColor: '#2563eb',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 1.5
-            }]
+                {
+                    label: 'Lower bound',
+                    data: [],
+                    borderWidth: 0,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.35
+                },
+                {
+                    label: 'Forecasted Sales (₱)',
+                    data: [],
+                    borderColor: '#2563eb',
+                    backgroundColor: (ctx) => {
+                        const chartArea = ctx.chart.chartArea;
+                        if (!chartArea) return 'rgba(37,99,235,0.12)';
+                        const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                        g.addColorStop(0, 'rgba(37,99,235,0.35)');
+                        g.addColorStop(1, 'rgba(37,99,235,0.02)');
+                        return g;
+                    },
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#2563eb',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1.5
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -1114,11 +1151,19 @@ $conn->close();
             interaction: { mode: 'index', intersect: false },
             layout: { padding: { top: 4, right: 8 } },
             plugins: {
-                legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } },
+                legend: {
+                    display: true,
+                    labels: {
+                        boxWidth: 12,
+                        font: { size: 11 },
+                        filter: (item) => item.text !== 'Upper bound' && item.text !== 'Lower bound'
+                    }
+                },
                 tooltip: {
                     backgroundColor: '#1e3a8a',
                     padding: 10,
                     cornerRadius: 8,
+                    filter: (item) => item.dataset.label === 'Forecasted Sales (₱)',
                     callbacks: {
                         label: (ctx) => `₱${Number(ctx.parsed.y).toLocaleString(undefined, {minimumFractionDigits: 2})}`
                     }
@@ -1175,17 +1220,21 @@ $conn->close();
                     forecastHint.style.display = 'block';
                     forecastHint.textContent = data.message;
                     forecastChart.data.labels = [];
-                    forecastChart.data.datasets[0].data = [];
+                    forecastChart.data.datasets.forEach(ds => ds.data = []);
                     forecastChart.update();
                     topItemsChart.data.labels = [];
                     topItemsChart.data.datasets[0].data = [];
                     topItemsChart.update();
                     setCards(0, 0, 'N/A');
+                    const badge = document.getElementById('forecastEngineBadge');
+                    if (badge) badge.style.display = 'none';
                     return;
                 }
 
                 forecastChart.data.labels = data.forecast.labels;
-                forecastChart.data.datasets[0].data = data.forecast.values;
+                forecastChart.data.datasets[0].data = data.forecast.upper || [];
+                forecastChart.data.datasets[1].data = data.forecast.lower || [];
+                forecastChart.data.datasets[2].data = data.forecast.values;
                 forecastChart.resize();
                 forecastChart.update();
                 if (data.forecast.values.length > 0) forecastHint.style.display = 'none';
@@ -1196,6 +1245,25 @@ $conn->close();
                 topItemsChart.update();
 
                 setCards(data.predicted_total_sales, data.predicted_items_sold, data.top_category);
+
+                const badge = document.getElementById('forecastEngineBadge');
+                if (badge) {
+                    if (data.engine === 'prophet') {
+                        badge.textContent = '🤖 Prophet ML';
+                        badge.title = 'Forecast generated by Facebook Prophet (linear trend + weekly seasonality).';
+                        badge.style.background = '#eef2ff';
+                        badge.style.color = '#4338ca';
+                        badge.style.display = 'inline-block';
+                    } else if (data.engine === 'linear_regression_fallback') {
+                        badge.textContent = '📐 Trend model';
+                        badge.title = 'Prophet is not available on this server, so a simplified trend model was used instead.';
+                        badge.style.background = '#fef3c7';
+                        badge.style.color = '#92400e';
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
             })
             .catch(err => {
                 console.error('Forecast error:', err);
@@ -1544,7 +1612,7 @@ function attachEditEvents(staffTable, customerTable){
                     if (isStaff) {
                         // Staff Modal Content (Old logic, just formatted to fit the new function)
                         modalContent = `
-                            <form id="edit-form" data-id="${data.user_id}">
+                            <form id="edit-form" data-id="${data.user_id}" autocomplete="off">
                                 <label>First Name:</label>
                                 <input type="text" name="first_name" value="${data.first_name}" required style="width:100%; margin-bottom:10px; padding:6px;">
                                 <label>Middle Name (Optional):</label>
@@ -1567,14 +1635,14 @@ function attachEditEvents(staffTable, customerTable){
                                 
                                 <p style="font-size:12px; color:#ef4444; margin:10px 0;">* Leave password blank to keep current password.</p>
                                 <label>New Password (Optional):</label>
-                                <input type="password" name="password" style="width:100%; margin-bottom:15px; padding:6px;">
+                                <input type="password" name="password" autocomplete="new-password" style="width:100%; margin-bottom:15px; padding:6px;">
                                 
                                 <button type="submit" style="width:100%; padding:8px; background:#1e90ff; color:#fff; border:none; border-radius:4px;">Update Staff</button>
                             </form>`;
                     } else {
                         // Customer Modal Content
                         modalContent = `
-                            <form id="edit-form" data-id="${data.customer_id}">
+                            <form id="edit-form" data-id="${data.customer_id}" autocomplete="off">
                                 <label>First Name:</label>
                                 <input type="text" name="first_name" value="${data.first_name}" required style="width:100%; margin-bottom:10px; padding:6px;">
                                 <label>Middle Name (Optional):</label>
@@ -1595,7 +1663,7 @@ function attachEditEvents(staffTable, customerTable){
     <input type="number" step="0.01" name="loyalty_points" id="loyalty_points" value="0" min="0" required style="width:100%; margin-bottom:10px; padding:6px;">
                                 <p style="font-size:12px; color:#ef4444; margin:10px 0;">* Leave password blank to keep current password.</p>
                                 <label>New Password (Optional):</label>
-                                <input type="password" name="password" style="width:100%; margin-bottom:15px; padding:6px;">
+                                <input type="password" name="password" autocomplete="new-password" style="width:100%; margin-bottom:15px; padding:6px;">
                                 
                                 <button type="submit" style="width:100%; padding:8px; background:#1e90ff; color:#fff; border:none; border-radius:4px;">Update Customer</button>
                             </form>`;
@@ -1801,7 +1869,7 @@ const customerTable = document.getElementById('customer-table-body');    const a
     if(addStaffBtn){
         addStaffBtn.onclick = () => {
             const staffModalContent = `
-                <form id="staff-form">
+                <form id="staff-form" autocomplete="off">
                     <label>First Name:</label>
                     <input type="text" name="first_name" required style="width:100%; margin-bottom:10px; padding:6px;">
                     <label>Middle Name (Optional):</label>
@@ -1814,7 +1882,7 @@ const customerTable = document.getElementById('customer-table-body');    const a
                     <label>Address:</label> <input type="text" name="address" style="width:100%; margin-bottom:10px; padding:6px;">
                     
                     <label>Username:</label>
-                    <input type="text" name="username" required style="width:100%; margin-bottom:10px; padding:6px;">
+                    <input type="text" name="username" autocomplete="off" required style="width:100%; margin-bottom:10px; padding:6px;">
                     <label>Role:</label>
                     <select name="role" required style="width:100%; margin-bottom:10px; padding:6px;">
                         <option value="">Select Role</option>
@@ -1822,7 +1890,7 @@ const customerTable = document.getElementById('customer-table-body');    const a
                         <option value="Cashier/Pharmacist">Cashier/Pharmacist</option> 
                     </select>
                  <label>Password:</label>
-                    <input type="password" name="password" required style="width:100%; margin-bottom:15px; padding:6px;">
+                    <input type="password" name="password" autocomplete="new-password" required style="width:100%; margin-bottom:15px; padding:6px;">
                     <button type="submit" style="width:100%; padding:8px; background:#2563eb; color:#fff; border:none; border-radius:4px;">Add Staff</button>
                 </form>`;
 
@@ -1891,7 +1959,7 @@ const customerTable = document.getElementById('customer-table-body');    const a
     // --- Customer Management (Add Logic) ---
     if(addCustomerBtn) addCustomerBtn.addEventListener('click', () => {
  const customerModalContent = `
-<form id="addCustomerForm">
+<form id="addCustomerForm" autocomplete="off">
     <label>First Name:</label>
     <input type="text" name="first_name" required style="width:100%; margin-bottom:10px; padding:6px;">
 
@@ -1902,7 +1970,7 @@ const customerTable = document.getElementById('customer-table-body');    const a
     <input type="text" name="last_name" required style="width:100%; margin-bottom:10px; padding:6px;">
 
     <label>Username:</label>
-    <input type="text" name="username" required style="width:100%; margin-bottom:10px; padding:6px;">
+    <input type="text" name="username" autocomplete="off" required style="width:100%; margin-bottom:10px; padding:6px;">
 
     <label>Email:</label>
     <input type="email" name="email" required style="width:100%; margin-bottom:10px; padding:6px;">
@@ -1924,7 +1992,7 @@ const customerTable = document.getElementById('customer-table-body');    const a
     <label>Points:</label>
 <input type="number" step="0.01" name="loyalty_points" id="loyalty_points" value="0" min="0" required style="width:100%; margin-bottom:10px; padding:6px;">
     <label>Password:</label>
-    <input type="password" name="password" required style="width:100%; margin-bottom:15px; padding:6px;">
+    <input type="password" name="password" autocomplete="new-password" required style="width:100%; margin-bottom:15px; padding:6px;">
 
     <button type="submit" style="width:100%; padding:8px; background:#16a34a; color:#fff; border:none; border-radius:4px;">
         Add Customer

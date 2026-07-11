@@ -2,90 +2,155 @@
 if (!isset($conn) || !($conn instanceof mysqli)) {
     require_once __DIR__ . '/../db_pharmacy.php';
 }
-$customer_id = $_SESSION['user_id'] ?? 0;
+
+$customer_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 $customer = [];
-if ($customer_id) {
-    $stmt = $conn->prepare("SELECT first_name, middle_name, last_name, email, phone_number, address, customer_type, loyalty_points, profile_image FROM customers WHERE customer_id = ?");
+
+if ($customer_id > 0) {
+    $stmt = $conn->prepare("SELECT first_name, middle_name, last_name, email, phone_number, address, customer_type, loyalty_points, profile_image, username FROM customers WHERE customer_id = ? LIMIT 1");
     $stmt->bind_param('i', $customer_id);
     $stmt->execute();
     $customer = $stmt->get_result()->fetch_assoc() ?: [];
     $stmt->close();
 }
-$avatar_src = !empty($customer['profile_image']) ? htmlspecialchars($customer['profile_image']) : 'https://via.placeholder.com/110?text=%20';
+
+$avatar_src = !empty($customer['profile_image'])
+    ? htmlspecialchars($customer['profile_image'])
+    : 'https://cdn-icons-png.flaticon.com/512/2922/2922510.png';
+
+$first_name = $customer['first_name'] ?? '';
+$middle_name = $customer['middle_name'] ?? '';
+$last_name = $customer['last_name'] ?? '';
+$email = $customer['email'] ?? '';
+$phone_number = $customer['phone_number'] ?? '';
+$address = $customer['address'] ?? '';
+$username = $customer['username'] ?? '';
+$customer_type = $customer['customer_type'] ?? 'Regular';
+$loyalty_points = isset($customer['loyalty_points']) ? number_format((float)$customer['loyalty_points'], 2) : '0.00';
+$full_name = trim($first_name . ' ' . $last_name);
 ?>
-<div class="profile-container" style="max-width:700px;">
-    <h2 style="color:#1e3a8a; margin-bottom:18px;">My Profile</h2>
-
-    <div class="profile-card" style="background:#fff; border-radius:10px; padding:24px; box-shadow:0 2px 10px rgba(0,0,0,0.05); margin-bottom:20px;">
-        <form id="customerProfileForm" enctype="multipart/form-data">
-            <div style="display:flex; align-items:center; gap:18px; margin-bottom:20px;">
-                <img id="profilePreview" src="<?= $avatar_src ?>" alt="Profile" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb;">
-                <div>
-                    <label for="profile_image_input" style="display:inline-block;padding:8px 14px;background:#2563eb;color:#fff;border-radius:6px;cursor:pointer;font-size:0.9em;">
-                        <i class="fas fa-camera"></i> Change Photo
-                    </label>
-                    <input type="file" id="profile_image_input" name="profile_image" accept="image/png,image/jpeg,image/webp" style="display:none;">
-                </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                <div>
-                    <label style="font-size:0.85em;color:#555;">First Name</label>
-                    <input type="text" name="first_name" value="<?= htmlspecialchars($customer['first_name'] ?? '') ?>" required style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:6px;">
-                </div>
-                <div>
-                    <label style="font-size:0.85em;color:#555;">Middle Name</label>
-                    <input type="text" name="middle_name" value="<?= htmlspecialchars($customer['middle_name'] ?? '') ?>" style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:6px;">
-                </div>
-                <div>
-                    <label style="font-size:0.85em;color:#555;">Last Name</label>
-                    <input type="text" name="last_name" value="<?= htmlspecialchars($customer['last_name'] ?? '') ?>" required style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:6px;">
-                </div>
-                <div>
-                    <label style="font-size:0.85em;color:#555;">Email</label>
-                    <input type="email" name="email" value="<?= htmlspecialchars($customer['email'] ?? '') ?>" required style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:6px;">
-                </div>
-                <div>
-                    <label style="font-size:0.85em;color:#555;">Phone Number</label>
-                    <input type="text" name="phone_number" value="<?= htmlspecialchars($customer['phone_number'] ?? '') ?>" style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:6px;">
-                </div>
-                <div>
-                    <label style="font-size:0.85em;color:#555;">Customer Type</label>
-                    <input type="text" value="<?= htmlspecialchars($customer['customer_type'] ?? 'Regular') ?>" disabled style="width:100%;padding:9px;border:1px solid #e5e7eb;border-radius:6px;background:#f9fafb;color:#888;">
-                </div>
-                <div style="grid-column:1/-1;">
-                    <label style="font-size:0.85em;color:#555;">Address</label>
-                    <input type="text" name="address" value="<?= htmlspecialchars($customer['address'] ?? '') ?>" style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:6px;">
-                </div>
-            </div>
-
-            <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;">
-                <span style="color:#f59e0b; font-weight:600;"><i class="fas fa-star"></i> <?= htmlspecialchars((string)($customer['loyalty_points'] ?? 0)) ?> Loyalty Points</span>
-                <button type="submit" class="update-btn" style="padding:10px 20px;border:none;border-radius:6px;background:#16a34a;color:#fff;cursor:pointer;">Save Changes</button>
-            </div>
-            <p id="profileFormMsg" style="margin-top:10px;font-size:0.9em;"></p>
-        </form>
+<div class="customer-profile-page">
+    <div class="customer-profile-header">
+        <div>
+            <h2>My Profile</h2>
+            <p>Manage your account information and login password.</p>
+        </div>
     </div>
 
-    <div class="profile-card" style="background:#fff; border-radius:10px; padding:24px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-        <h3 style="margin-bottom:14px;">Change Password</h3>
-        <form id="customerPasswordForm">
-            <div style="display:grid; gap:12px; max-width:380px;">
-                <input type="password" name="current_password" placeholder="Current password" required style="padding:9px;border:1px solid #d1d5db;border-radius:6px;">
-                <input type="password" name="new_password" placeholder="New password (min 6 characters)" required style="padding:9px;border:1px solid #d1d5db;border-radius:6px;">
-                <input type="password" name="confirm_password" placeholder="Confirm new password" required style="padding:9px;border:1px solid #d1d5db;border-radius:6px;">
+    <div class="customer-profile-layout">
+        <aside class="profile-summary-card">
+            <div class="profile-avatar-wrap">
+                <img id="profilePreview" src="<?= $avatar_src ?>" alt="Profile photo">
+                <label for="profile_image_input" class="profile-photo-btn" title="Change profile picture">
+                    <i class="fas fa-camera"></i>
+                </label>
+                <input type="file" id="profile_image_input" name="profile_image" accept="image/png,image/jpeg,image/webp" form="customerProfileForm">
             </div>
-            <button type="submit" style="margin-top:14px;padding:10px 20px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer;">Update Password</button>
-            <p id="passwordFormMsg" style="margin-top:10px;font-size:0.9em;"></p>
-        </form>
+
+            <h3 id="profileCardName"><?= htmlspecialchars($full_name ?: 'Customer') ?></h3>
+            <p class="profile-username">@<?= htmlspecialchars($username ?: 'customer') ?></p>
+
+            <div class="profile-pill-row">
+                <span class="profile-pill profile-pill-blue"><i class="fas fa-id-card"></i><?= htmlspecialchars($customer_type) ?> Customer</span>
+                <span class="profile-pill profile-pill-gold"><i class="fas fa-star"></i><?= htmlspecialchars($loyalty_points) ?> Points</span>
+            </div>
+        </aside>
+
+        <section class="profile-details-card">
+            <div class="profile-card-head">
+                <div>
+                    <h3>Account Details</h3>
+                    <p>These values are loaded from your customer record.</p>
+                </div>
+            </div>
+
+            <form id="customerProfileForm" enctype="multipart/form-data">
+                <div class="profile-form-grid">
+                    <label>
+                        <span>First Name</span>
+                        <input type="text" name="first_name" class="p-input" value="<?= htmlspecialchars($first_name) ?>" disabled required>
+                    </label>
+                    <label>
+                        <span>Middle Name</span>
+                        <input type="text" name="middle_name" class="p-input" value="<?= htmlspecialchars($middle_name) ?>" disabled>
+                    </label>
+                    <label>
+                        <span>Last Name</span>
+                        <input type="text" name="last_name" class="p-input" value="<?= htmlspecialchars($last_name) ?>" disabled required>
+                    </label>
+                    <label>
+                        <span>Email</span>
+                        <input type="email" name="email" class="p-input" value="<?= htmlspecialchars($email) ?>" disabled required>
+                    </label>
+                    <label>
+                        <span>Phone</span>
+                        <input type="text" name="phone_number" class="p-input" value="<?= htmlspecialchars($phone_number) ?>" disabled>
+                    </label>
+                    <label class="profile-field-wide">
+                        <span>Address</span>
+                        <textarea name="address" class="p-input" disabled><?= htmlspecialchars($address) ?></textarea>
+                    </label>
+                </div>
+
+                <p id="profileFormMsg" class="profile-form-msg" aria-live="polite"></p>
+
+                <div class="profile-action-row">
+                    <button type="button" id="profile_editBtn" class="profile-btn profile-btn-primary"><i class="fas fa-pen"></i>Edit Profile</button>
+                    <button type="submit" id="profile_saveBtn" class="profile-btn profile-btn-success" hidden><i class="fas fa-check"></i>Save Changes</button>
+                    <button type="button" id="profile_cancelBtn" class="profile-btn profile-btn-muted" hidden>Cancel</button>
+                </div>
+            </form>
+        </section>
+
+        <aside class="profile-password-card">
+            <h3><i class="fas fa-lock"></i>Change Password</h3>
+            <p>Separate from your account details. This only changes your login password.</p>
+            <form id="customerPasswordForm">
+                <input type="password" name="current_password" autocomplete="current-password" placeholder="Current password" required>
+                <input type="password" name="new_password" autocomplete="new-password" placeholder="New password (min 6 characters)" required>
+                <input type="password" name="confirm_password" autocomplete="new-password" placeholder="Confirm new password" required>
+                <button type="submit" class="profile-btn profile-btn-danger">Update Password</button>
+                <p id="passwordFormMsg" class="profile-form-msg" aria-live="polite"></p>
+            </form>
+        </aside>
     </div>
 </div>
 
 <script>
 (function() {
+    const form = document.getElementById('customerProfileForm');
+    const inputs = form ? form.querySelectorAll('.p-input') : [];
+    const editBtn = document.getElementById('profile_editBtn');
+    const saveBtn = document.getElementById('profile_saveBtn');
+    const cancelBtn = document.getElementById('profile_cancelBtn');
+    const msg = document.getElementById('profileFormMsg');
     const previewImg = document.getElementById('profilePreview');
     const fileInput = document.getElementById('profile_image_input');
-    if (fileInput) {
+    const original = {};
+    let originalPreview = previewImg ? previewImg.src : '';
+
+    if (!form || !editBtn || !saveBtn || !cancelBtn) return;
+
+    inputs.forEach(input => { original[input.name] = input.value; });
+
+    function setEditing(isEditing) {
+        inputs.forEach(input => { input.disabled = !isEditing; });
+        editBtn.hidden = isEditing;
+        saveBtn.hidden = !isEditing;
+        cancelBtn.hidden = !isEditing;
+        if (msg) msg.textContent = '';
+    }
+
+    editBtn.addEventListener('click', () => setEditing(true));
+
+    cancelBtn.addEventListener('click', () => {
+        inputs.forEach(input => { input.value = original[input.name] || ''; });
+        if (fileInput) fileInput.value = '';
+        if (previewImg) previewImg.src = originalPreview;
+        setEditing(false);
+    });
+
+    if (fileInput && previewImg) {
         fileInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
                 previewImg.src = URL.createObjectURL(this.files[0]);
@@ -93,49 +158,86 @@ $avatar_src = !empty($customer['profile_image']) ? htmlspecialchars($customer['p
         });
     }
 
-    const profileForm = document.getElementById('customerProfileForm');
-    if (profileForm) {
-        profileForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const msg = document.getElementById('profileFormMsg');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (msg) {
             msg.textContent = 'Saving...';
-            msg.style.color = '#666';
-            fetch('update_customer_profile.php', { method: 'POST', body: new FormData(profileForm) })
-                .then(r => r.json())
-                .then(data => {
-                    msg.textContent = data.message;
+            msg.style.color = '#6b7280';
+        }
+
+        fetch('update_customer_profile.php', { method: 'POST', body: new FormData(form) })
+            .then(response => response.json())
+            .then(data => {
+                if (msg) {
+                    msg.textContent = data.message || (data.success ? 'Profile updated.' : 'Failed to update profile.');
                     msg.style.color = data.success ? '#16a34a' : '#e74c3c';
-                    if (data.success) {
-                        const welcomeSpan = document.querySelector('.header-right span');
-                        if (welcomeSpan) welcomeSpan.textContent = 'Welcome, ' + profileForm.first_name.value;
+                }
+
+                if (!data.success) return;
+
+                const customer = data.customer || {};
+                inputs.forEach(input => {
+                    if (Object.prototype.hasOwnProperty.call(customer, input.name)) {
+                        input.value = customer[input.name] || '';
                     }
-                })
-                .catch(() => { msg.textContent = 'Network error. Please try again.'; msg.style.color = '#e74c3c'; });
-        });
-    }
+                    original[input.name] = input.value;
+                });
+
+                setEditing(false);
+
+                const fullName = `${form.first_name.value} ${form.last_name.value}`.trim() || 'Customer';
+                const cardName = document.getElementById('profileCardName');
+                if (cardName) cardName.textContent = fullName;
+
+                const headerWelcome = document.getElementById('headerWelcomeName');
+                if (headerWelcome) headerWelcome.textContent = 'Welcome, ' + (form.first_name.value || 'Customer');
+
+                if (data.profile_image && previewImg) {
+                    previewImg.src = data.profile_image + '?t=' + Date.now();
+                    originalPreview = previewImg.src;
+                } else if (previewImg) {
+                    originalPreview = previewImg.src;
+                }
+                if (fileInput) fileInput.value = '';
+            })
+            .catch(() => {
+                if (msg) {
+                    msg.textContent = 'Network error. Please try again.';
+                    msg.style.color = '#e74c3c';
+                }
+            });
+    });
 
     const passwordForm = document.getElementById('customerPasswordForm');
     if (passwordForm) {
         passwordForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const msg = document.getElementById('passwordFormMsg');
+            const pmsg = document.getElementById('passwordFormMsg');
             const body = {
                 current_password: passwordForm.current_password.value,
                 new_password: passwordForm.new_password.value,
                 confirm_password: passwordForm.confirm_password.value,
             };
+
             fetch('change_password.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             })
-                .then(r => r.json())
+                .then(response => response.json())
                 .then(data => {
-                    msg.textContent = data.message;
-                    msg.style.color = data.success ? '#16a34a' : '#e74c3c';
+                    if (pmsg) {
+                        pmsg.textContent = data.message || (data.success ? 'Password updated.' : 'Failed to update password.');
+                        pmsg.style.color = data.success ? '#16a34a' : '#e74c3c';
+                    }
                     if (data.success) passwordForm.reset();
                 })
-                .catch(() => { msg.textContent = 'Network error. Please try again.'; msg.style.color = '#e74c3c'; });
+                .catch(() => {
+                    if (pmsg) {
+                        pmsg.textContent = 'Network error. Please try again.';
+                        pmsg.style.color = '#e74c3c';
+                    }
+                });
         });
     }
 })();

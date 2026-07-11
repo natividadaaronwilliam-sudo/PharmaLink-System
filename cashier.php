@@ -4,7 +4,8 @@ session_start();
 // SECURITY FIX: this page previously had no login/role check at all — it
 // was reachable by anyone who typed the URL, logged in or not, and could
 // process real sales against the database.
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['Cashier/Pharmacist', 'Admin'], true)) {
+$__role = strtolower(trim($_SESSION['user_role'] ?? ''));
+if (!isset($_SESSION['user_id']) || !in_array($__role, ['cashier/pharmacist', 'admin'], true)) {
     header('Location: index.php');
     exit;
 }
@@ -242,11 +243,8 @@ $staff_display_email = !empty($staff['email']) ? $staff['email'] : ($staff['user
 <div class="header">
     <h3>Cashier/Pharmacy Portal</h3>
     <div class="header-right">
-        <div class="notification" id="staffNotificationBell">
-            <i class="fas fa-bell"></i>
-            <div id="staff-notification-dropdown" class="staff-notif-dropdown"></div>
-        </div>
-<span>Welcome, <?php echo htmlspecialchars($user_first_name); ?></span>    </div>
+        <?php $notif_mode = 'staff'; require 'includes/notification_bell.php'; ?>
+<span id="headerWelcomeName">Welcome, <?php echo htmlspecialchars($user_first_name); ?></span>    </div>
 </div>
 
     <div class="content">
@@ -672,28 +670,6 @@ style="padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;"> 
       </tr>
     </table>
 
-    <hr style="margin:20px 0; border-top:1px solid #e5e7eb;">
-
-    <h3 style="color:#1e3a8a; margin-bottom:12px;">Change Password</h3>
-    <table style="width:100%; border-collapse:collapse; font-size:14px; color:#374151; margin-bottom:12px;">
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold; width:35%;">Current:</td>
-        <td style="padding:8px 4px;"><input type="password" id="current_password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold;">New:</td>
-        <td style="padding:8px 4px;"><input type="password" id="new_password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-      <tr>
-        <td style="padding:8px 4px; font-weight:bold;">Confirm:</td>
-        <td style="padding:8px 4px;"><input type="password" id="confirm_password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
-      </tr>
-    </table>
-    <button id="changePasswordBtn" type="button" style="background:#dc2626; color:white; padding:10px; width:100%; border:none; border-radius:8px; cursor:pointer; margin-bottom:10px;">Update Password</button>
-    <p id="password-message" style="text-align:center; font-weight:600;"></p>
-
-    <hr style="margin:20px 0; border-top:1px solid #e5e7eb;">
-
     <!-- BUTTONS -->
     <div style="display:flex; gap:10px;">
       <button id="profile_editBtn" style="
@@ -717,7 +693,37 @@ style="padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;"> 
 
     <p id="message" style="text-align:center; margin-top:10px;"></p>
 
-  </div>
+  </div><!-- /Account Details card -->
+
+  <div class="profile-card" style="
+        background:#fff7f7;
+        border:1px solid #fecaca;
+        padding:24px 30px;
+        width:500px;
+        margin: 24px auto 0 auto;
+        border-radius:12px;
+        box-shadow:0 4px 15px rgba(0,0,0,0.08);
+      ">
+    <h3 style="color:#b91c1c; margin-bottom:4px;"><i class="fas fa-lock" style="margin-right:8px;"></i>Change Password</h3>
+    <p style="color:#7f1d1d; font-size:13px; margin:0 0 16px;">Separate from your account details above — this only changes your login password.</p>
+    <table style="width:100%; border-collapse:collapse; font-size:14px; color:#374151; margin-bottom:12px;">
+      <tr>
+        <td style="padding:8px 4px; font-weight:bold; width:35%;">Current:</td>
+        <td style="padding:8px 4px;"><input type="password" id="current_password" autocomplete="current-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
+      </tr>
+      <tr>
+        <td style="padding:8px 4px; font-weight:bold;">New:</td>
+        <td style="padding:8px 4px;"><input type="password" id="new_password" autocomplete="new-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
+      </tr>
+      <tr>
+        <td style="padding:8px 4px; font-weight:bold;">Confirm:</td>
+        <td style="padding:8px 4px;"><input type="password" id="confirm_password" autocomplete="new-password" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></td>
+      </tr>
+    </table>
+    <button id="changePasswordBtn" type="button" style="background:#dc2626; color:white; padding:10px; width:100%; border:none; border-radius:8px; cursor:pointer; margin-bottom:10px;">Update Password</button>
+    <p id="password-message" style="text-align:center; font-weight:600;"></p>
+
+  </div><!-- /Change Password card -->
 </div>
 <!-- /#profile-page -->
 
@@ -2645,6 +2651,9 @@ function applySegmentCount(n) {
               if (middleNamePara) {
                   middleNamePara.textContent = data.middle_name;
               }
+
+              const headerWelcome = document.getElementById("headerWelcomeName");
+              if (headerWelcome) headerWelcome.textContent = `Welcome, ${data.first_name}`;
           } else {
               msg.style.color = "red";
               msg.innerHTML = response.message || "Update failed.";

@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const categoryFilter = document.getElementById('categoryFilter');
 
    // notif  
-    const notificationBell = document.querySelector('.notification i.fa-bell');
+    const notificationBell = document.getElementById('customerNotificationBell') || document.querySelector('.notification');
     const notificationDropdown = document.getElementById('notification-dropdown');    
     
     
@@ -621,44 +621,64 @@ function displayOrderDetails(data) {
 // Counter para sa notification badge
 let notificationCount = 0;
 
-/**
- * Nag-a-update ng notification count at badge display.
- * @param {number} count 
- */
 function updateNotificationBadge(count) {
-    notificationCount = count;
+    if (!notificationBell) return;
+
+    notificationCount = count || 0;
+    notificationBell.classList.toggle('has-unread', notificationCount > 0);
+
     let badge = notificationBell.querySelector('.notification-badge');
-    
-    if (count > 0) {
+    if (notificationCount > 0) {
         if (!badge) {
             badge = document.createElement('span');
             badge.className = 'notification-badge';
-            badge.style.cssText = `
-                position: absolute; 
-                top: -5px; 
-                right: -5px; 
-                background: red; 
-                color: white; 
-                border-radius: 50%; 
-                padding: 2px 6px; 
-                font-size: 0.7em; 
-                font-weight: bold;
-            `;
-            notificationBell.parentNode.style.position = 'relative'; // Para sa positioning ng badge
             notificationBell.appendChild(badge);
         }
-        badge.innerText = count;
-        badge.style.display = 'block';
+        badge.textContent = notificationCount > 9 ? '9+' : notificationCount;
     } else if (badge) {
-        badge.style.display = 'none';
+        badge.remove();
     }
 }
 
-/**
- * Regular na nagche-check sa server para sa bagong notipikasyon.
- */
+function renderNotificationDropdown(notifications) {
+    if (!notificationDropdown || !notificationDropdown.classList.contains('open')) return;
+
+    if (!notifications || notifications.length === 0) {
+        notificationDropdown.innerHTML = '<div class="staff-notif-empty">No new alerts. You are all caught up!</div>';
+        return;
+    }
+
+    notificationDropdown.innerHTML = notifications.map(notif => `
+        <div class="staff-notif-item order_update"
+             data-order-id="${notif.order_id}"
+             role="button"
+             tabindex="0"
+             style="cursor:pointer;">
+            <i class="fas fa-receipt"></i>
+            <span>${notif.message}<br><small style="color:#9ca3af;">${notif.date}</small></span>
+        </div>
+    `).join('');
+
+    notificationDropdown.querySelectorAll('.staff-notif-item[data-order-id]').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const orderId = item.dataset.orderId;
+            window.markNotificationRead(orderId);
+            window.showOrderDetails(orderId);
+            notificationDropdown.classList.remove('open');
+        });
+
+        item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                item.click();
+            }
+        });
+    });
+}
+
 function checkNotifications() {
-    if (selectedCustomer === null) return; // Huwag i-check kung walang customer
+    if (selectedCustomer === null || !notificationBell || !notificationDropdown) return;
 
     fetch('get_notifications.php')
         .then(response => {
@@ -666,62 +686,22 @@ function checkNotifications() {
             return response.json();
         })
         .then(data => {
-            // ✅ Fix: Laging i-update ang badge
-            updateNotificationBadge(data.count); 
-            
-            // ✅ Fix: Tawagin lang ang render kung NAKA-BUKAS ang dropdown
-        if (notificationDropdown.style.display === 'block') {
-            renderNotificationDropdown(data.notifications);
-            }
+            updateNotificationBadge(data.count || 0);
+            renderNotificationDropdown(data.notifications || []);
         })
         .catch(error => {
             console.error('Notification Polling Error:', error);
         });
 }
 
-/**
- * Nagre-render ng content sa dropdown menu.
- * TANDAAN: Hahayaan lang natin itong mag-render KAPAG OPEN ang dropdown.
- * @param {Array} notifications 
- */
-function renderNotificationDropdown(notifications) {
-    // Kung HINDI naka-display ang dropdown, HINDI na kailangang mag-render ng content.
-    // Tanging ang badge lang ang kailangan i-update.
-    if (notificationDropdown.style.display !== 'block') {
-        return; 
-    }
-
-    if (notifications.length === 0) {
-        notificationDropdown.innerHTML = '<p style="padding: 10px; text-align: center; color: #666;">No new notifications.</p>';
-        return;
-    }
-
-    let html = notifications.map(notif => `
-        <div class="notif-item" 
-             data-order-id="${notif.order_id}" 
-             onclick="window.markNotificationRead(${notif.order_id}); window.showOrderDetails(${notif.order_id}); notificationDropdown.style.display = 'none';"
-             style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; background: #fff8e1;">
-            <strong>🔔 ${notif.message}</strong>
-            <div style="font-size: 0.8em; color: #666;">${notif.date}</div>
-        </div>
-    `).join('');
-
-    notificationDropdown.innerHTML = html;
-}
-
-/**
- * I-sesend sa server ang request para i-markahan ang notipikasyon bilang nabasa.
- * @param {number} orderId 
- */
 window.markNotificationRead = function(orderId) {
-    // Tawagin ang PHP script na mag-a-update ng is_read = 1 sa database
     fetch(`includes/mark_read.php?order_id=${orderId}`, { method: 'POST' })
-        .then(response => {
-            if (response.ok) {
-                // I-update ang badge count at i-refresh ang display
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.success) {
                 notificationCount = Math.max(0, notificationCount - 1);
                 updateNotificationBadge(notificationCount);
-                checkNotifications(); // I-reload ang listahan
+                checkNotifications();
             }
         })
         .catch(error => {
@@ -729,52 +709,25 @@ window.markNotificationRead = function(orderId) {
         });
 };
 
+if (notificationBell && notificationDropdown) {
+    notificationDropdown.addEventListener('click', (e) => e.stopPropagation());
 
-// I-setup ang event listener para ipakita/itago ang dropdown
-notificationBell.parentNode.addEventListener('click', (e) => {
-    e.stopPropagation();  
-
-    if (notificationDropdown.style.display === 'block') {
-        notificationDropdown.style.display = 'none';
-    } else {
-        notificationDropdown.style.display = 'block';
-        notificationDropdown.innerHTML = '<p style="padding: 10px; text-align: center;">Loading...</p>';
-        checkNotifications();
-    }
-});
-
-
-document.addEventListener("DOMContentLoaded", () => {
-    const bell = document.querySelector(".notification i"); // the bell icon
-    const dropdown = document.getElementById("notification-dropdown");
-
-    // Toggle dropdown on bell click
-    bell.addEventListener("click", () => {
-        dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-    });
-
-    // Optional: close dropdown when clicking outside
-    document.addEventListener("click", (e) => {
-        if (!document.querySelector(".notification").contains(e.target)) {
-            dropdown.style.display = "none";
+    notificationBell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        notificationDropdown.classList.toggle('open');
+        if (notificationDropdown.classList.contains('open')) {
+            notificationDropdown.innerHTML = '<div class="staff-notif-empty">Loading...</div>';
+            checkNotifications();
         }
     });
-});
 
-// Siguraduhin na naka-disable ang `!e.target.closest('.notification')` check para sa test na ito:
-document.addEventListener('click', (e) => {
-    if (
-        !e.target.closest('.notification') && 
-        !e.target.closest('#notification-dropdown')
-    ) {
-        notificationDropdown.style.display = 'none';
-    }
-});
-// Simulan ang Polling (hal., tuwing 10 segundo)
-// 10000 milliseconds = 10 seconds
-setInterval(checkNotifications, 10000); 
-checkNotifications();  
+    document.addEventListener('click', (e) => {
+        if (!notificationBell.contains(e.target) && !notificationDropdown.contains(e.target)) {
+            notificationDropdown.classList.remove('open');
+        }
+    });
 
-// Initial check sa pag-load ng page
-
+    setInterval(checkNotifications, 30000);
+    checkNotifications();
+}
 });
